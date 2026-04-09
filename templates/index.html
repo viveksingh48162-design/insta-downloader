@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>Vidzo Downloader</title>
+
 <style>
 body {
     background: linear-gradient(135deg,#5f9cff,#7f3fbf);
@@ -23,14 +24,17 @@ input, select, button {
     border-radius: 10px;
     border: none;
 }
-button {
-    background: red;
-    color: white;
-    cursor: pointer;
-}
-img {
-    width: 100%;
+button { background:red; color:white; }
+
+.progress {
+    height: 10px;
+    background: #ddd;
     border-radius: 10px;
+}
+.bar {
+    height: 10px;
+    width: 0%;
+    background: lime;
 }
 </style>
 </head>
@@ -41,92 +45,102 @@ img {
 
 <h2>🔥 Vidzo Downloader</h2>
 
-<input id="url" placeholder="Paste link here">
+<input id="url" placeholder="Paste link" oninput="resetUI()">
 
 <button onclick="getVideo()">Get Video</button>
 
 <h3 id="title"></h3>
-
 <img id="thumb">
 
-<select id="type" onchange="toggleQuality()">
+<select id="type" onchange="resetUI()">
 <option value="mp4">MP4</option>
 <option value="mp3">MP3</option>
 </select>
 
-<select id="quality"></select>
+<select id="quality" onchange="resetUI()"></select>
 
-<button onclick="download()">Download</button>
+<button onclick="startDownload()">Download</button>
+
+<div class="progress"><div class="bar" id="bar"></div></div>
+
+<p id="status">0%</p>
 
 </div>
 
 <script>
 
-let currentPlatform = "";
+let platform = "";
+
+function resetUI() {
+    document.getElementById("bar").style.width = "0%";
+    document.getElementById("status").innerText = "Reset";
+}
 
 async function getVideo() {
-    const url = document.getElementById("url").value;
+    resetUI();
 
-    const res = await fetch("/info", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({url})
+    let url = document.getElementById("url").value;
+
+    let res = await fetch("/info", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url})
     });
 
-    const data = await res.json();
+    let data = await res.json();
 
-    if (data.error) {
+    if(data.error){
         alert(data.error);
         return;
     }
 
-    currentPlatform = data.platform;
+    platform = data.platform;
 
     document.getElementById("title").innerText = data.title;
     document.getElementById("thumb").src = data.thumbnail;
 
-    const quality = document.getElementById("quality");
-    quality.innerHTML = "";
+    let q = document.getElementById("quality");
+    q.innerHTML = "";
 
-    if (data.platform === "youtube") {
-        data.formats.forEach(f => {
-            let opt = document.createElement("option");
-            opt.value = f.format_id;
-            opt.text = f.quality;
-            quality.appendChild(opt);
+    if(platform === "youtube"){
+        data.formats.forEach(f=>{
+            let o = document.createElement("option");
+            o.value = f.format_id;
+            o.text = f.quality;
+            q.appendChild(o);
         });
     }
-
-    toggleQuality();
 }
 
-function toggleQuality() {
-    const type = document.getElementById("type").value;
-    const quality = document.getElementById("quality");
+async function startDownload(){
+    let url = document.getElementById("url").value;
+    let type = document.getElementById("type").value;
+    let format_id = document.getElementById("quality").value;
 
-    if (type === "mp3" || currentPlatform === "instagram") {
-        quality.style.display = "none";
-    } else {
-        quality.style.display = "block";
-    }
-}
-
-async function download() {
-    const url = document.getElementById("url").value;
-    const type = document.getElementById("type").value;
-    const format_id = document.getElementById("quality").value;
-
-    const res = await fetch("/download", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({url, type, format_id})
+    await fetch("/download", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url,type,format_id})
     });
 
-    const blob = await res.blob();
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "video";
-    a.click();
+    track();
+}
+
+async function track(){
+    let interval = setInterval(async ()=>{
+        let res = await fetch("/progress");
+        let data = await res.json();
+
+        document.getElementById("bar").style.width = data.percent + "%";
+        document.getElementById("status").innerText =
+            data.percent + "% | " + data.speed;
+
+        if(data.percent >= 100){
+            clearInterval(interval);
+            window.location = "/file";
+        }
+
+    },1000);
 }
 
 </script>
