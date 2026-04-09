@@ -1,50 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>🔥 Vidzo Downloader</title>
-
+<title>Vidzo Downloader</title>
 <style>
 body {
-    background: linear-gradient(135deg,#667eea,#764ba2);
-    font-family: sans-serif;
-    color: white;
+    background: linear-gradient(135deg,#5f9cff,#7f3fbf);
+    font-family: Arial;
     text-align: center;
+    color: white;
 }
-.container {
-    max-width: 400px;
-    margin: auto;
-    padding: 20px;
-}
-.card {
-    background: rgba(255,255,255,0.1);
+.box {
+    margin: 80px auto;
+    width: 300px;
     padding: 20px;
     border-radius: 20px;
-    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.1);
 }
-input,select,button {
-    width:100%;
-    padding:12px;
-    margin:10px 0;
-    border:none;
-    border-radius:10px;
+input, select, button {
+    width: 90%;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+    border: none;
 }
 button {
-    background:red;
-    color:white;
-    font-weight:bold;
+    background: red;
+    color: white;
+    cursor: pointer;
 }
 img {
-    width:100%;
-    border-radius:10px;
-    margin-top:10px;
+    width: 100%;
+    border-radius: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-<div class="card">
+<div class="box">
 
 <h2>🔥 Vidzo Downloader</h2>
 
@@ -54,90 +47,86 @@ img {
 
 <h3 id="title"></h3>
 
-<img id="thumb" style="display:none">
+<img id="thumb">
 
-<select id="type">
+<select id="type" onchange="toggleQuality()">
 <option value="mp4">MP4</option>
 <option value="mp3">MP3</option>
 </select>
 
-<select id="quality" style="display:none">
-<option>360</option>    
-<option>720p</option>
-<option>1080p</option>
-<option>2160</option>    
-</select>
+<select id="quality"></select>
 
-<button onclick="downloadNow()">⬇ Download Now</button>
+<button onclick="download()">Download</button>
 
-</div>
 </div>
 
 <script>
 
-let currentUrl="";
+let currentPlatform = "";
 
-// 🎯 GET INFO
-async function getVideo(){
+async function getVideo() {
+    const url = document.getElementById("url").value;
 
-let url=document.getElementById("url").value;
-currentUrl=url;
+    const res = await fetch("/info", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({url})
+    });
 
-let res=await fetch("/info",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({url})
-});
+    const data = await res.json();
 
-let data=await res.json();
+    if (data.error) {
+        alert(data.error);
+        return;
+    }
 
-if(data.error){
-alert(data.error);
-return;
+    currentPlatform = data.platform;
+
+    document.getElementById("title").innerText = data.title;
+    document.getElementById("thumb").src = data.thumbnail;
+
+    const quality = document.getElementById("quality");
+    quality.innerHTML = "";
+
+    if (data.platform === "youtube") {
+        data.formats.forEach(f => {
+            let opt = document.createElement("option");
+            opt.value = f.format_id;
+            opt.text = f.quality;
+            quality.appendChild(opt);
+        });
+    }
+
+    toggleQuality();
 }
 
-document.getElementById("title").innerText=data.title;
+function toggleQuality() {
+    const type = document.getElementById("type").value;
+    const quality = document.getElementById("quality");
 
-// thumbnail
-if(data.thumbnail){
-document.getElementById("thumb").src=data.thumbnail;
-document.getElementById("thumb").style.display="block";
+    if (type === "mp3" || currentPlatform === "instagram") {
+        quality.style.display = "none";
+    } else {
+        quality.style.display = "block";
+    }
 }
 
-// youtube only quality
-if(data.is_youtube){
-document.getElementById("quality").style.display="block";
-}else{
-document.getElementById("quality").style.display="none";
-}
+async function download() {
+    const url = document.getElementById("url").value;
+    const type = document.getElementById("type").value;
+    const format_id = document.getElementById("quality").value;
 
-}
+    const res = await fetch("/download", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({url, type, format_id})
+    });
 
-
-// 🚀 DOWNLOAD
-async function downloadNow(){
-
-let type=document.getElementById("type").value;
-
-let res=await fetch("/download",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-url:currentUrl,
-type:type
-})
-});
-
-let data=await res.json();
-
-if(data.error){
-alert(data.error);
-return;
-}
-
-// 🔥 redirect to API
-window.open(data.api,"_blank");
-
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "video";
+    a.click();
 }
 
 </script>
