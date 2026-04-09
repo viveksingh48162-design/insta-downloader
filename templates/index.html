@@ -1,163 +1,143 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>🔥 Vidzo Downloader</title>
+<title>🔥 Vidzo Downloader</title>
 
-    <style>
-        body {
-            background: linear-gradient(135deg,#667eea,#764ba2);
-            font-family: sans-serif;
-            color: white;
-            text-align: center;
-        }
-
-        .container {
-            max-width: 400px;
-            margin: auto;
-            padding: 20px;
-        }
-
-        .card {
-            background: rgba(255,255,255,0.1);
-            padding: 20px;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        input, select, button {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 10px;
-        }
-
-        button {
-            background: red;
-            color: white;
-            font-weight: bold;
-        }
-
-        img, iframe {
-            width: 100%;
-            margin-top: 10px;
-            border-radius: 10px;
-        }
-
-        .progress {
-            height: 20px;
-            background: #ddd;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .bar {
-            height: 100%;
-            width: 0%;
-            background: lime;
-        }
-    </style>
+<style>
+body {
+    background: linear-gradient(135deg,#667eea,#764ba2);
+    font-family: sans-serif;
+    color: white;
+    text-align: center;
+}
+.container {
+    max-width: 400px;
+    margin: auto;
+    padding: 20px;
+}
+.card {
+    background: rgba(255,255,255,0.1);
+    padding: 20px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+input,select,button {
+    width:100%;
+    padding:12px;
+    margin:10px 0;
+    border:none;
+    border-radius:10px;
+}
+button {
+    background:red;
+    color:white;
+    font-weight:bold;
+}
+img {
+    width:100%;
+    border-radius:10px;
+    margin-top:10px;
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
-    <div class="card">
+<div class="card">
 
-        <h2>🔥 Vidzo Downloader</h2>
+<h2>🔥 Vidzo Downloader</h2>
 
-        <input id="url" placeholder="Paste link here">
+<input id="url" placeholder="Paste link here">
 
-        <button onclick="getVideo()">Get Video</button>
+<button onclick="getVideo()">Get Video</button>
 
-        <h3 id="title"></h3>
+<h3 id="title"></h3>
 
-        <img id="thumb" style="display:none">
+<img id="thumb" style="display:none">
 
-        <!-- TYPE -->
-        <select id="type">
-            <option value="mp4">MP4</option>
-            <option value="mp3">MP3</option>
-        </select>
+<select id="type">
+<option value="mp4">MP4</option>
+<option value="mp3">MP3</option>
+</select>
 
-        <!-- QUALITY (only YouTube) -->
-        <select id="quality" style="display:none">
-            <option value="360">360p</option>
-            <option value="720">720p</option>
-            <option value="1080">1080p</option>
-            <option value="4K">4K</option>
-        </select>
+<select id="quality" style="display:none">
+<option>360</option>    
+<option>720p</option>
+<option>1080p</option>
+<option>2160</option>    
+</select>
 
-        <button onclick="downloadNow()">⬇ Download Now</button>
+<button onclick="downloadNow()">⬇ Download Now</button>
 
-        <div class="progress">
-            <div class="bar" id="bar"></div>
-        </div>
-
-    </div>
+</div>
 </div>
 
 <script>
 
-let currentUrl = "";
+let currentUrl="";
 
-// 🎯 GET VIDEO INFO
-async function getVideo() {
+// 🎯 GET INFO
+async function getVideo(){
 
-    let url = document.getElementById("url").value;
-    currentUrl = url;
+let url=document.getElementById("url").value;
+currentUrl=url;
 
-    let res = await fetch("/info", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({url})
-    });
+let res=await fetch("/info",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({url})
+});
 
-    let data = await res.json();
+let data=await res.json();
 
-    if (data.error) {
-        alert(data.error);
-        return;
-    }
+if(data.error){
+alert(data.error);
+return;
+}
 
-    document.getElementById("title").innerText = data.title;
+document.getElementById("title").innerText=data.title;
 
-    // ✅ Thumbnail
-    document.getElementById("thumb").src = data.thumbnail;
-    document.getElementById("thumb").style.display = "block";
+// thumbnail
+if(data.thumbnail){
+document.getElementById("thumb").src=data.thumbnail;
+document.getElementById("thumb").style.display="block";
+}
 
-    // ✅ YouTube check
-    if (data.is_youtube) {
-        document.getElementById("quality").style.display = "block";
-    } else {
-        document.getElementById("quality").style.display = "none";
-    }
+// youtube only quality
+if(data.is_youtube){
+document.getElementById("quality").style.display="block";
+}else{
+document.getElementById("quality").style.display="none";
+}
+
 }
 
 
 // 🚀 DOWNLOAD
-async function downloadNow() {
+async function downloadNow(){
 
-    let type = document.getElementById("type").value;
+let type=document.getElementById("type").value;
 
-    let res = await fetch("/download", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            url: currentUrl,
-            type: type
-        })
-    });
+let res=await fetch("/download",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+url:currentUrl,
+type:type
+})
+});
 
-    let data = await res.json();
+let data=await res.json();
 
-    if (data.error) {
-        alert(data.error);
-        return;
-    }
+if(data.error){
+alert(data.error);
+return;
+}
 
-    // ✅ Direct download
-    window.location.href = "/file?path=" + encodeURIComponent(data.file);
+// 🔥 redirect to API
+window.open(data.api,"_blank");
+
 }
 
 </script>
