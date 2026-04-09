@@ -7,28 +7,12 @@ app = Flask(__name__)
 DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-progress_data = {"percent": 0, "speed": "", "status": "idle"}
+progress_data = {"percent": 0, "status": "idle"}
 
 
 @app.route("/")
 def home():
     return render_template("index.html")
-
-
-def progress_hook(d):
-    if d['status'] == 'downloading':
-        progress_data["percent"] = float(d.get('_percent_str', '0').replace('%', ''))
-        progress_data["speed"] = d.get('_speed_str', '')
-        progress_data["status"] = "downloading"
-
-    elif d['status'] == 'finished':
-        progress_data["percent"] = 100
-        progress_data["status"] = "finished"
-
-
-@app.route("/progress")
-def progress():
-    return jsonify(progress_data)
 
 
 @app.route("/info", methods=["POST"])
@@ -42,7 +26,7 @@ def info():
         return jsonify({
             "title": data.get("title"),
             "thumbnail": data.get("thumbnail"),
-            "platform": "instagram" if "instagram" in url else "youtube"
+            "is_youtube": "youtube" in url
         })
 
     except Exception as e:
@@ -52,13 +36,10 @@ def info():
 @app.route("/download", methods=["POST"])
 def download():
     url = request.json["url"]
-    quality = request.json.get("quality", "best")
     filetype = request.json.get("type", "mp4")
 
-    progress_data.update({"percent": 0, "status": "starting"})
-
     try:
-        # MP3 OPTION
+        # MP3
         if filetype == "mp3":
             ydl_opts = {
                 'format': 'bestaudio',
@@ -67,25 +48,22 @@ def download():
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',
                 }],
-                'progress_hooks': [progress_hook],
             }
 
-        # MP4 OPTION
+        # MP4
         else:
             ydl_opts = {
-                'format': 'bestvideo+bestaudio/best',
+                'format': 'best',
                 'outtmpl': f'{DOWNLOAD_FOLDER}/%(title)s.%(ext)s',
                 'merge_output_format': 'mp4',
                 'noplaylist': True,
-                'progress_hooks': [progress_hook],
-                'concurrent_fragment_downloads': 5
             }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             path = ydl.prepare_filename(info)
 
-        # fix extension
+        # extension fix
         if filetype == "mp3":
             path = path.rsplit(".", 1)[0] + ".mp3"
         else:
