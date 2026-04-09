@@ -1,32 +1,41 @@
 from flask import Flask, render_template, request, jsonify, send_file
-import yt_dlp
-import os
-import threading
+import yt_dlp, os, uuid, threading, time, requests
 
 app = Flask(__name__)
 
-progress_data = {
-    "percent": 0,
-    "speed": "0 KB/s",
-    "status": "idle"
-}
+DOWNLOAD_FOLDER = "downloads"
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+
+progress_data = {"percent":0,"speed":"0 KB/s","status":"idle"}
+
+# 🔥 AUTO DELETE
+def auto_delete(path):
+    time.sleep(60)
+    if os.path.exists(path):
+        os.remove(path)
+
+# 🔥 PROGRESS
+def hook(d):
+    if d['status'] == 'downloading':
+        try:
+            progress_data["percent"] = int(float(d['_percent_str'].replace('%','')))
+        except:
+            pass
+        progress_data["speed"] = d.get("_speed_str","0 KB/s")
+    elif d['status'] == 'finished':
+        progress_data["percent"] = 100
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
-
+# 🔥 INFO (YT + INSTA + FALLBACK)
 @app.route("/info", methods=["POST"])
 def info():
     url = request.json.get("url")
 
     try:
-        ydl_opts = {
-            'quiet': True,
-            'noplaylist': True,
-            'cookiefile': None
-        }
-
+        ydl_opts = {'quiet':True,'noplaylist':True}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             data = ydl.extract_info(url, download=False)
 
@@ -34,10 +43,10 @@ def info():
 
         formats = []
         if is_youtube:
-            for f in data.get("formats", []):
+            for f in data.get("formats",[]):
                 if f.get("height"):
                     formats.append({
-                        "quality": str(f["height"]) + "p",
+                        "quality": str(f["height"])+"p",
                         "format_id": f["format_id"]
                     })
 
@@ -48,43 +57,51 @@ def info():
             "platform": "youtube" if is_youtube else "instagram"
         })
 
-    except Exception as e:
-        return jsonify({"error": str(e)})
+    except:
+        # 🔥 FALLBACK API (NO BLOCK)
+        try:
+            api = f"https://yt-api.p.rapidapi.com/dl?id={url.split('v=')[-1]}"
+            r = requests.get(api)
+            d = r.json()
 
+            return jsonify({
+                "title": d.get("title"),
+                "thumbnail": d.get("thumbnail"),
+                "formats": [
+                    {"quality":"360p","format_id":"18"},
+                    {"quality":"720p","format_id":"22"},
+                    {"quality":"1080p","format_id":"137"},
+                    {"quality":"4K","format_id":"313"}
+                ],
+                "platform":"youtube"
+            })
+        except Exception as e:
+            return jsonify({"error":str(e)})
 
-# 🎯 PROGRESS HOOK
-def hook(d):
-    if d['status'] == 'downloading':
-        progress_data["percent"] = int(float(d['_percent_str'].replace('%','')))
-        progress_data["speed"] = d.get("_speed_str", "0 KB/s")
-        progress_data["status"] = "downloading"
-
-    elif d['status'] == 'finished':
-        progress_data["percent"] = 100
-        progress_data["status"] = "finished"
-
-
+# 🔥 DOWNLOAD
 @app.route("/download", methods=["POST"])
 def download():
     url = request.json.get("url")
     format_id = request.json.get("format_id")
     filetype = request.json.get("type")
 
-    progress_data["percent"] = 0
-    progress_data["status"] = "starting"
+    progress_data["percent"]=0
+
+    uid = str(uuid.uuid4())[:8]
+    filename = f"{DOWNLOAD_FOLDER}/video_{uid}.%(ext)s"
 
     try:
         ydl_opts = {
-            'progress_hooks': [hook],
-            'outtmpl': 'video.%(ext)s'
+            'outtmpl': filename,
+            'progress_hooks':[hook]
         }
 
-        if filetype == "mp3":
+        if filetype=="mp3":
             ydl_opts.update({
-                'format': 'bestaudio',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3'
+                'format':'bestaudio',
+                'postprocessors':[{
+                    'key':'FFmpegExtractAudio',
+                    'preferredcodec':'mp3'
                 }]
             })
         else:
@@ -98,25 +115,23 @@ def download():
 
         threading.Thread(target=run).start()
 
-        return jsonify({"status": "started"})
+        return jsonify({"id":uid})
 
     except Exception as e:
-        return jsonify({"error": str(e)})
-
+        return jsonify({"error":str(e)})
 
 @app.route("/progress")
 def progress():
     return jsonify(progress_data)
 
-
 @app.route("/file")
 def file():
-    if os.path.exists("video.mp4"):
-        return send_file("video.mp4", as_attachment=True)
-    if os.path.exists("video.mp3"):
-        return send_file("video.mp3", as_attachment=True)
+    fid = request.args.get("id")
 
+    for ext in ["mp4","mp3"]:
+        path = f"{DOWNLOAD_FOLDER}/video_{fid}.{ext}"
+        if os.path.exists(path):
+            threading.Thread(target=auto_delete,args=(path,)).start()
+            return send_file(path, as_attachment=True)
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    return "File not found"
