@@ -1,143 +1,221 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Vidzo Downloader</title>
+    <title>🔥 Vidzo Downloader</title>
 
-<style>
-body {
-    background: linear-gradient(135deg,#5f9cff,#7f3fbf);
-    font-family: Arial;
-    text-align: center;
-    color: white;
-}
-.box {
-    margin: 80px auto;
-    width: 300px;
-    padding: 20px;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.1);
-}
-input, select, button {
-    width: 90%;
-    padding: 10px;
-    margin: 10px;
-    border-radius: 10px;
-    border: none;
-}
-button { background:red; color:white; }
+    <style>
+        body{
+            background:linear-gradient(135deg,#667eea,#764ba2);
+            font-family:sans-serif;
+            color:white;
+            text-align:center;
+        }
 
-.progress {
-    height: 10px;
-    background: #ddd;
-    border-radius: 10px;
-}
-.bar {
-    height: 10px;
-    width: 0%;
-    background: lime;
-}
-</style>
+        .container{
+            max-width:400px;
+            margin:auto;
+            padding:20px;
+        }
+
+        .card{
+            background:rgba(255,255,255,0.1);
+            padding:20px;
+            border-radius:20px;
+            backdrop-filter:blur(10px);
+        }
+
+        input,select,button{
+            width:100%;
+            padding:12px;
+            margin:10px 0;
+            border:none;
+            border-radius:10px;
+        }
+
+        button{
+            background:red;
+            color:white;
+            font-weight:bold;
+            cursor:pointer;
+        }
+
+        img{
+            width:100%;
+            border-radius:10px;
+            margin-top:10px;
+        }
+
+        .progress{
+            height:20px;
+            background:#ddd;
+            border-radius:10px;
+            overflow:hidden;
+        }
+
+        .bar{
+            height:100%;
+            width:0%;
+            background:lime;
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="box">
+<div class="container">
+<div class="card">
 
 <h2>🔥 Vidzo Downloader</h2>
 
-<input id="url" placeholder="Paste link" oninput="resetUI()">
+<input id="url" placeholder="Paste link">
 
 <button onclick="getVideo()">Get Video</button>
 
 <h3 id="title"></h3>
-<img id="thumb">
 
-<select id="type" onchange="resetUI()">
-<option value="mp4">MP4</option>
-<option value="mp3">MP3</option>
+<img id="thumb" style="display:none">
+
+<select id="type" onchange="changeType()">
+    <option value="mp4">MP4</option>
+    <option value="mp3">MP3</option>
 </select>
 
-<select id="quality" onchange="resetUI()"></select>
+<select id="quality"></select>
 
-<button onclick="startDownload()">Download</button>
+<button onclick="download()">⬇ Download</button>
 
-<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="progress">
+    <div class="bar" id="bar"></div>
+</div>
 
-<p id="status">0%</p>
+<p id="info">0% | 0 KB/s</p>
 
+</div>
 </div>
 
 <script>
 
-let platform = "";
+let currentUrl="";
+let platform="";
 
-function resetUI() {
-    document.getElementById("bar").style.width = "0%";
-    document.getElementById("status").innerText = "Reset";
+// 🔥 RESET UI
+function reset(){
+    document.getElementById("bar").style.width="0%";
+    document.getElementById("info").innerText="0% | 0 KB/s";
 }
 
-async function getVideo() {
-    resetUI();
+// 🔥 GET VIDEO INFO
+async function getVideo(){
 
-    let url = document.getElementById("url").value;
+    reset();
 
-    let res = await fetch("/info", {
+    let url=document.getElementById("url").value;
+    currentUrl=url;
+
+    let res=await fetch("/info",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({url})
     });
 
-    let data = await res.json();
+    let data=await res.json();
 
     if(data.error){
         alert(data.error);
         return;
     }
 
-    platform = data.platform;
+    platform=data.platform;
 
-    document.getElementById("title").innerText = data.title;
-    document.getElementById("thumb").src = data.thumbnail;
+    document.getElementById("title").innerText=data.title || "No Title";
 
-    let q = document.getElementById("quality");
-    q.innerHTML = "";
+    if(data.thumbnail){
+        let img=document.getElementById("thumb");
+        img.src=data.thumbnail;
+        img.style.display="block";
+    }
 
-    if(platform === "youtube"){
+    let quality=document.getElementById("quality");
+    quality.innerHTML="";
+
+    if(platform==="youtube"){
         data.formats.forEach(f=>{
-            let o = document.createElement("option");
-            o.value = f.format_id;
-            o.text = f.quality;
-            q.appendChild(o);
+            let opt=document.createElement("option");
+            opt.value=f.format_id;
+            opt.text=f.quality;
+            quality.appendChild(opt);
         });
+    }else{
+        let opt=document.createElement("option");
+        opt.text="Auto";
+        opt.value="best";
+        quality.appendChild(opt);
+    }
+
+    changeType();
+}
+
+// 🔥 TYPE CHANGE (MP3 / MP4)
+function changeType(){
+
+    reset();
+
+    let type=document.getElementById("type").value;
+    let quality=document.getElementById("quality");
+
+    if(type==="mp3"){
+        quality.style.display="none";
+    }else{
+        if(platform==="youtube"){
+            quality.style.display="block";
+        }else{
+            quality.style.display="none";
+        }
     }
 }
 
-async function startDownload(){
-    let url = document.getElementById("url").value;
-    let type = document.getElementById("type").value;
-    let format_id = document.getElementById("quality").value;
+// 🔥 DOWNLOAD
+async function download(){
 
-    await fetch("/download", {
+    reset();
+
+    let type=document.getElementById("type").value;
+    let format=document.getElementById("quality").value;
+
+    let res=await fetch("/download",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({url,type,format_id})
+        body:JSON.stringify({
+            url:currentUrl,
+            type:type,
+            format_id:format
+        })
     });
 
-    track();
+    let data=await res.json();
+
+    if(data.error){
+        alert(data.error);
+        return;
+    }
+
+    track(data.id);
 }
 
-async function track(){
-    let interval = setInterval(async ()=>{
-        let res = await fetch("/progress");
-        let data = await res.json();
+// 🔥 PROGRESS TRACK
+function track(id){
 
-        document.getElementById("bar").style.width = data.percent + "%";
-        document.getElementById("status").innerText =
-            data.percent + "% | " + data.speed;
+    let interval=setInterval(async ()=>{
 
-        if(data.percent >= 100){
+        let r=await fetch("/progress");
+        let p=await r.json();
+
+        document.getElementById("bar").style.width=p.percent+"%";
+        document.getElementById("info").innerText=p.percent+"% | "+p.speed;
+
+        if(p.percent>=100){
             clearInterval(interval);
-            window.location = "/file";
+            window.location="/file?id="+id;
         }
 
     },1000);
