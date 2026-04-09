@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>🔥 Vidzo Downloader</title>
+
+<style>
+body{
+background:linear-gradient(135deg,#667eea,#764ba2);
+font-family:sans-serif;
+color:white;
+text-align:center;
+}
+
+.container{
+max-width:400px;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:rgba(255,255,255,0.1);
+padding:20px;
+border-radius:20px;
+backdrop-filter:blur(10px);
+}
+
+input,select,button{
+width:100%;
+padding:12px;
+margin:10px 0;
+border:none;
+border-radius:10px;
+}
+
+button{
+background:red;
+color:white;
+font-weight:bold;
+}
+
+img,iframe{
+width:100%;
+border-radius:10px;
+margin-top:10px;
+}
+
+.progress{
+height:20px;
+background:#ddd;
+border-radius:10px;
+overflow:hidden;
+}
+
+.bar{
+height:100%;
+width:0%;
+background:lime;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<div class="card">
+
+<h2>🔥 Vidzo Downloader</h2>
+
+<input id="url" placeholder="Paste link">
+
+<button onclick="getVideo()">Get Video</button>
+
+<h3 id="title"></h3>
+
+<iframe id="yt" style="display:none;height:200px"></iframe>
+<img id="thumb" style="display:none">
+
+<select id="type">
+<option value="mp4">MP4</option>
+<option value="mp3">MP3</option>
+</select>
+
+<select id="quality" style="display:none">
+<option value="360">360p</option>
+<option value="720">720p</option>
+<option value="1080">1080p</option>
+<option value="2160">4K</option>
+</select>
+
+<!-- 🔥 FIXED BUTTONS -->
+<button onclick="downloadNow()">⬇ Download Now</button>
+<button onclick="addQueue()">➕ Add to Queue</button>
+
+<div class="progress">
+<div class="bar" id="bar"></div>
+</div>
+
+<p id="info"></p>
+<p id="queueText"></p>
+
+</div>
+</div>
+
+<script>
+let currentUrl="",queue=[],working=false;
+
+async function getVideo(){
+let url=document.getElementById("url").value;
+currentUrl=url;
+
+let data=await fetch("/info",{method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({url})}).then(r=>r.json());
+
+document.getElementById("title").innerText=data.title;
+
+if(data.platform=="youtube"){
+let id=url.split("v=")[1]||url.split("/").pop();
+document.getElementById("yt").src="https://www.youtube.com/embed/"+id;
+document.getElementById("yt").style.display="block";
+document.getElementById("quality").style.display="block";
+document.getElementById("thumb").style.display="none";
+}else{
+document.getElementById("thumb").src=data.thumbnail;
+document.getElementById("thumb").style.display="block";
+document.getElementById("quality").style.display="none";
+document.getElementById("yt").style.display="none";
+}
+}
+
+async function downloadNow(){
+let quality=document.getElementById("quality").value;
+let type=document.getElementById("type").value;
+
+startDownload({url:currentUrl,quality,type});
+}
+
+function addQueue(){
+let quality=document.getElementById("quality").value;
+let type=document.getElementById("type").value;
+
+queue.push({url:currentUrl,quality,type});
+document.getElementById("queueText").innerText="Queue: "+queue.length;
+
+if(!working) processQueue();
+}
+
+async function processQueue(){
+if(queue.length==0){working=false;return;}
+
+working=true;
+let job=queue.shift();
+
+await startDownload(job);
+
+document.getElementById("queueText").innerText="Queue: "+queue.length;
+
+processQueue();
+}
+
+async function startDownload(job){
+
+document.getElementById("bar").style.width="0%";
+document.getElementById("info").innerText="Starting...";
+
+let res=await fetch("/download",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(job)
+}).then(r=>r.json());
+
+return new Promise(resolve=>{
+let interval=setInterval(async()=>{
+let p=await fetch("/progress").then(r=>r.json());
+
+document.getElementById("bar").style.width=p.percent+"%";
+document.getElementById("info").innerText=
+p.percent+"% | "+p.speed+" | "+p.status;
+
+if(p.percent>=100){
+clearInterval(interval);
+
+let a=document.createElement("a");
+a.href="/file?path="+encodeURIComponent(res.file);
+a.click();
+
+resolve();
+}
+},800);
+});
+}
+</script>
+
+</body>
+</html>
