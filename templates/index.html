@@ -11,29 +11,33 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    height:100vh;
+    min-height:100vh;
 }
 
 .box{
     background:rgba(255,255,255,0.1);
-    backdrop-filter:blur(10px);
-    padding:20px;
+    backdrop-filter:blur(15px);
+    padding:25px;
     border-radius:20px;
     width:90%;
     max-width:400px;
     text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,0.3);
 }
+
+h2{color:white;}
 
 input,select,button{
     width:100%;
-    padding:12px;
+    padding:14px;
     margin:10px 0;
-    border-radius:10px;
+    border-radius:12px;
     border:none;
+    font-size:15px;
 }
 
 button{
-    background:red;
+    background:#ff1e1e;
     color:white;
     font-weight:bold;
 }
@@ -41,9 +45,29 @@ button{
 img{
     width:100%;
     border-radius:10px;
+    margin-top:10px;
+}
+
+p{color:white;}
+
+.progress{
+    height:8px;
+    background:#ccc;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.progress-bar{
+    height:100%;
+    width:0%;
+    background:#00ff88;
+}
+
+/* MOBILE FIX */
+@media(max-width:600px){
+    body{align-items:flex-start;padding-top:40px;}
 }
 </style>
-
 </head>
 
 <body>
@@ -65,87 +89,95 @@ img{
 
 <div id="preview"></div>
 
-<button onclick="download()">Download</button>
+<button onclick="startDownload()">Download</button>
+
+<p id="timer"></p>
+
+<div class="progress">
+<div class="progress-bar" id="bar"></div>
+</div>
 
 </div>
 
 <script>
 
-let currentPlatform = ""
+let platform=""
 
 function getVideo(){
-    let url = document.getElementById("url").value
+    let url=document.getElementById("url").value
 
     fetch("/info",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({url})
     })
-    .then(res=>res.json())
+    .then(r=>r.json())
     .then(data=>{
 
-        if(data.error){
-            alert(data.error)
-            return
-        }
+        if(data.error){alert(data.error);return;}
 
-        currentPlatform = data.platform
+        platform=data.platform
 
-        // preview
-        document.getElementById("preview").innerHTML = `
-            ${data.thumbnail ? `<img src="${data.thumbnail}">` : ""}
-            <p>${data.title}</p>
-        `
+        document.getElementById("preview").innerHTML=
+        `<img src="${data.thumbnail}">
+        <p>${data.title}</p>`
 
-        let q = document.getElementById("quality")
-        q.innerHTML = ""
+        let q=document.getElementById("quality")
+        q.innerHTML=""
 
-        if(data.platform === "youtube"){
+        if(platform=="youtube"){
             data.formats.forEach(f=>{
-                let opt = document.createElement("option")
-                opt.value = f.format_id
-                opt.text = f.quality
-                q.appendChild(opt)
+                let o=document.createElement("option")
+                o.value=f.format_id
+                o.text=f.quality
+                q.appendChild(o)
             })
             q.style.display="block"
-        } else {
+        }else{
             q.style.display="none"
         }
-
     })
 }
 
 function toggleQuality(){
-    let type = document.getElementById("type").value
-    let q = document.getElementById("quality")
+    let type=document.getElementById("type").value
+    let q=document.getElementById("quality")
 
-    if(type === "mp3"){
-        q.style.display="none"
-    } else {
-        if(currentPlatform === "youtube"){
-            q.style.display="block"
+    if(type=="mp3") q.style.display="none"
+    else if(platform=="youtube") q.style.display="block"
+}
+
+function startDownload(){
+    let t=3
+    let timer=document.getElementById("timer")
+
+    let interval=setInterval(()=>{
+        timer.innerText="Downloading in "+t+" sec..."
+        t--
+        if(t<0){
+            clearInterval(interval)
+            download()
         }
-    }
+    },1000)
 }
 
 function download(){
-    let url = document.getElementById("url").value
-    let type = document.getElementById("type").value
-    let format_id = document.getElementById("quality").value
+    let url=document.getElementById("url").value
+    let type=document.getElementById("type").value
+    let format_id=document.getElementById("quality").value
 
     fetch("/download",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({url,type,format_id})
     })
-    .then(res=>res.json())
+    .then(r=>r.json())
     .then(data=>{
-        if(data.error){
-            alert(data.error)
-            return
-        }
+        if(data.error){alert(data.error);return;}
 
-        window.location = "/file?id=" + data.id
+        document.getElementById("bar").style.width="100%"
+
+        window.location="/file?id="+data.id
     })
 }
 
