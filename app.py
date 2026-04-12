@@ -10,13 +10,13 @@ os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 downloads = {}
 
-# 🔥 HOME
+# HOME
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# 🔥 VIDEO INFO (preview + quality)
+# 🔥 INFO
 @app.route("/info", methods=["POST"])
 def info():
     url = request.json["url"]
@@ -32,7 +32,7 @@ def info():
 
         formats = []
 
-        # 👉 Only for YouTube
+        # ONLY YOUTUBE
         if "youtu" in url:
             for f in data.get("formats", []):
                 if f.get("height") and f.get("format_id"):
@@ -42,8 +42,8 @@ def info():
                     })
 
         return jsonify({
-            "title": data.get("title", "No Title"),
-            "thumbnail": data.get("thumbnail", ""),
+            "title": data.get("title"),
+            "thumbnail": data.get("thumbnail"),
             "platform": "youtube" if "youtu" in url else "instagram",
             "formats": formats
         })
@@ -58,7 +58,7 @@ def download():
     data = request.json
     url = data["url"]
     type_ = data["type"]
-    format_id = data.get("format_id", "best")
+    format_id = data.get("format_id")
 
     file_id = str(uuid.uuid4())
 
@@ -68,6 +68,10 @@ def download():
             "quiet": True,
             "noplaylist": True,
         }
+
+        # 🔥 YOUTUBE FIX (cookies)
+        if "youtu" in url:
+            ydl_opts["cookiesfrombrowser"] = ("chrome",)
 
         # 🔥 MP3
         if type_ == "mp3":
@@ -81,16 +85,16 @@ def download():
 
         # 🔥 MP4
         else:
-            if format_id != "best":
-                ydl_opts["format"] = format_id
-            else:
+            # 👉 Instagram → always best
+            if "instagram" in url:
                 ydl_opts["format"] = "best"
+            else:
+                ydl_opts["format"] = format_id if format_id else "best"
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
 
-        # mp3 fix
         if type_ == "mp3":
             filename = filename.rsplit(".", 1)[0] + ".mp3"
 
@@ -102,7 +106,7 @@ def download():
         return jsonify({"error": str(e)})
 
 
-# 🔥 FILE SERVE
+# FILE
 @app.route("/file")
 def file():
     file_id = request.args.get("id")
@@ -114,6 +118,5 @@ def file():
     return send_file(path, as_attachment=True)
 
 
-# 🔥 RUN
 if __name__ == "__main__":
     app.run(debug=True)
