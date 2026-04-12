@@ -1,224 +1,164 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>🔥 Vidzo Downloader</title>
+<title>Downloader Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <style>
-        body{
-            background:linear-gradient(135deg,#667eea,#764ba2);
-            font-family:sans-serif;
-            color:white;
-            text-align:center;
-        }
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:sans-serif;
+}
 
-        .container{
-            max-width:400px;
-            margin:auto;
-            padding:20px;
-        }
+body{
+  background: linear-gradient(135deg,#667eea,#764ba2);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
 
-        .card{
-            background:rgba(255,255,255,0.1);
-            padding:20px;
-            border-radius:20px;
-            backdrop-filter:blur(10px);
-        }
+/* 🔥 CARD UI */
+.card{
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  padding:20px;
+  border-radius:15px;
+  width:90%;
+  max-width:350px;
+  text-align:center;
+  box-shadow:0 10px 25px rgba(0,0,0,0.3);
+}
 
-        input,select,button{
-            width:100%;
-            padding:12px;
-            margin:10px 0;
-            border:none;
-            border-radius:10px;
-        }
+h2{
+  color:white;
+  margin-bottom:15px;
+}
 
-        button{
-            background:red;
-            color:white;
-            font-weight:bold;
-            cursor:pointer;
-        }
+/* INPUT */
+input, select{
+  width:100%;
+  padding:12px;
+  margin:8px 0;
+  border-radius:8px;
+  border:none;
+  outline:none;
+}
 
-        img{
-            width:100%;
-            border-radius:10px;
-            margin-top:10px;
-        }
+/* BUTTON */
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  background:#ff4b5c;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
 
-        .progress{
-            height:20px;
-            background:#ddd;
-            border-radius:10px;
-            overflow:hidden;
-        }
+button:hover{
+  background:#ff2e43;
+}
 
-        .bar{
-            height:100%;
-            width:0%;
-            background:lime;
-        }
-    </style>
+/* PREVIEW */
+.preview{
+  margin-top:15px;
+}
+
+.preview img{
+  width:100%;
+  border-radius:10px;
+}
+
+.timer{
+  margin-top:10px;
+  color:yellow;
+  font-weight:bold;
+}
+
+</style>
 </head>
 
 <body>
 
-<div class="container">
 <div class="card">
 
 <h2>🔥 Vidzo Downloader</h2>
 
-<input id="url" placeholder="Paste link">
+<input type="text" id="url" placeholder="Paste link here">
 
-<button onclick="getVideo()">Get Video</button>
+<button onclick="getPreview()">Get Video</button>
 
-<h3 id="title"></h3>
-
-<img id="thumb" style="display:none">
-
-<select id="type" onchange="changeType()">
-    <option value="mp4">MP4</option>
-    <option value="mp3">MP3</option>
+<select id="quality">
+  <option value="360">360p</option>
+  <option value="480">480p</option>
+  <option value="720">720p</option>
+  <option value="1080">1080p</option>
+  <option value="mp3">MP3</option>
 </select>
 
-<select id="quality"></select>
+<button onclick="startDownload()">Download</button>
 
-<button onclick="download()">⬇ Download</button>
+<div id="preview" class="preview"></div>
 
-<div class="progress">
-    <div class="bar" id="bar"></div>
-</div>
-
-<p id="info">0% | 0 KB/s</p>
-
-</div>
 </div>
 
 <script>
 
-let currentUrl="";
-let platform="";
+let currentURL = "";
 
-// 🔥 RESET UI
-function reset(){
-    document.getElementById("bar").style.width="0%";
-    document.getElementById("info").innerText="0% | 0 KB/s";
+function getPreview(){
+  let url = document.getElementById("url").value;
+  currentURL = url;
+
+  fetch("/info?url="+encodeURIComponent(url))
+  .then(res=>res.json())
+  .then(data=>{
+    document.getElementById("preview").innerHTML = `
+      <img src="${data.thumbnail}">
+      <p style="color:white;margin-top:8px">${data.title}</p>
+      <div class="timer" id="timer"></div>
+    `;
+  });
 }
 
-// 🔥 GET VIDEO INFO
-async function getVideo(){
+function startDownload(){
 
-    reset();
+  let time = 5;
 
-    let url=document.getElementById("url").value;
-    currentUrl=url;
+  let timer = setInterval(()=>{
+    document.getElementById("timer").innerText =
+      "Download starting in " + time + " sec...";
 
-    let res=await fetch("/info",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({url})
-    });
+    time--;
 
-    let data=await res.json();
+    if(time < 0){
+      clearInterval(timer);
 
-    if(data.error){
-        alert(data.error);
-        return;
+      let form = document.createElement("form");
+      form.method = "POST";
+      form.action = "/download";
+
+      let urlInput = document.createElement("input");
+      urlInput.name = "url";
+      urlInput.value = currentURL;
+
+      let q = document.createElement("input");
+      q.name = "quality";
+      q.value = document.getElementById("quality").value;
+
+      form.appendChild(urlInput);
+      form.appendChild(q);
+
+      document.body.appendChild(form);
+      form.submit();
     }
 
-    platform=data.platform;
-
-    document.getElementById("title").innerText=data.title || "No Title";
-
-    if(data.thumbnail){
-        let img=document.getElementById("thumb");
-        img.src=data.thumbnail;
-        img.style.display="block";
-    }
-
-    let quality=document.getElementById("quality");
-    quality.innerHTML="";
-
-    if(platform==="youtube"){
-        data.formats.forEach(f=>{
-            let opt=document.createElement("option");
-            opt.value=f.format_id;
-            opt.text=f.quality;
-            quality.appendChild(opt);
-        });
-    }else{
-        let opt=document.createElement("option");
-        opt.text="Auto";
-        opt.value="best";
-        quality.appendChild(opt);
-    }
-
-    changeType();
-}
-
-// 🔥 TYPE CHANGE (MP3 / MP4)
-function changeType(){
-
-    reset();
-
-    let type=document.getElementById("type").value;
-    let quality=document.getElementById("quality");
-
-    if(type==="mp3"){
-        quality.style.display="none";
-    }else{
-        if(platform==="youtube"){
-            quality.style.display="block";
-        }else{
-            quality.style.display="none";
-        }
-    }
-}
-
-// 🔥 DOWNLOAD
-async function download(){
-
-    reset();
-
-    let type=document.getElementById("type").value;
-    let format=document.getElementById("quality").value;
-
-    let res=await fetch("/download",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-            url:currentUrl,
-            type:type,
-            format_id:format
-        })
-    });
-
-    let data=await res.json();
-
-    if(data.error){
-        alert(data.error);
-        return;
-    }
-
-    track(data.id);
-}
-
-// 🔥 PROGRESS TRACK
-function track(id){
-
-    let interval=setInterval(async ()=>{
-
-        let r=await fetch("/progress");
-        let p=await r.json();
-
-        document.getElementById("bar").style.width=p.percent+"%";
-        document.getElementById("info").innerText=p.percent+"% | "+p.speed;
-
-        if(p.percent>=100){
-            clearInterval(interval);
-            window.location="/file?id="+id;
-        }
-
-    },1000);
+  },1000);
 }
 
 </script>
