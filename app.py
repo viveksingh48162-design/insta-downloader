@@ -83,8 +83,8 @@ def download():
 
         # 🔥 MP4
        # 🔥 MP4
-else:
-    if "instagram" in url:
+    else: 
+      if "instagram" in url:
         ydl_opts["format"] = "best"
         ydl_opts["cookiesfrombrowser"] = ("chrome",)
     else:
