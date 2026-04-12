@@ -10,13 +10,12 @@ os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 downloads = {}
 
-# HOME
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# 🔥 INFO
+# 🔥 VIDEO INFO
 @app.route("/info", methods=["POST"])
 def info():
     url = request.json["url"]
@@ -32,7 +31,6 @@ def info():
 
         formats = []
 
-        # ONLY YOUTUBE
         if "youtu" in url:
             for f in data.get("formats", []):
                 if f.get("height") and f.get("format_id"):
@@ -69,7 +67,7 @@ def download():
             "noplaylist": True,
         }
 
-        # 🔥 YOUTUBE FIX (cookies)
+        # 🔥 YouTube bot fix
         if "youtu" in url:
             ydl_opts["cookiesfrombrowser"] = ("chrome",)
 
@@ -85,7 +83,6 @@ def download():
 
         # 🔥 MP4
         else:
-            # 👉 Instagram → always best
             if "instagram" in url:
                 ydl_opts["format"] = "best"
             else:
@@ -106,7 +103,6 @@ def download():
         return jsonify({"error": str(e)})
 
 
-# FILE
 @app.route("/file")
 def file():
     file_id = request.args.get("id")
