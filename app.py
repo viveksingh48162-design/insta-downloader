@@ -82,11 +82,13 @@ def download():
             })
 
         # 🔥 MP4
-        else:
-            if "instagram" in url:
-                ydl_opts["format"] = "best"
-            else:
-                ydl_opts["format"] = format_id if format_id else "best"
+       # 🔥 MP4
+else:
+    if "instagram" in url:
+        ydl_opts["format"] = "best"
+        ydl_opts["cookiesfrombrowser"] = ("chrome",)
+    else:
+        ydl_opts["format"] = format_id if format_id else "best""
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
