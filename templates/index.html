@@ -1,136 +1,169 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidzo Downloader</title>
 
 <style>
 body{
     margin:0;
-    font-family:sans-serif;
-    background: linear-gradient(135deg,#5f9cff,#7b3fe4);
+    font-family:Arial, sans-serif;
+    background:linear-gradient(135deg,#4facfe,#8e44ad);
     display:flex;
     justify-content:center;
     align-items:center;
-    min-height:100vh;
+    height:100vh;
 }
 
-.box{
+/* CARD */
+.container{
     background:rgba(255,255,255,0.1);
     backdrop-filter:blur(15px);
     padding:25px;
     border-radius:20px;
-    width:90%;
-    max-width:400px;
+    width:380px;
     text-align:center;
-    box-shadow:0 10px 30px rgba(0,0,0,0.3);
+    box-shadow:0 10px 30px rgba(0,0,0,0.2);
 }
 
-h2{color:white;}
+/* MOBILE FIX */
+@media(max-width:500px){
+    body{align-items:flex-end;}
+    .container{
+        width:90%;
+        margin-bottom:40px;
+    }
+}
 
-input,select,button{
+h2{
+    color:white;
+    margin-bottom:15px;
+}
+
+/* INPUT */
+input,select{
     width:100%;
-    padding:14px;
-    margin:10px 0;
-    border-radius:12px;
+    padding:12px;
+    margin:8px 0;
     border:none;
-    font-size:15px;
+    border-radius:10px;
+    outline:none;
 }
 
+/* BUTTON */
 button{
-    background:#ff1e1e;
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border:none;
+    border-radius:10px;
+    background:red;
     color:white;
     font-weight:bold;
+    cursor:pointer;
 }
 
-img{
+/* VIDEO PREVIEW */
+.video-box{
+    margin-top:15px;
+    color:white;
+}
+
+.video-box img{
     width:100%;
     border-radius:10px;
-    margin-top:10px;
 }
 
-p{color:white;}
-
+/* PROGRESS */
 .progress{
-    height:8px;
+    height:6px;
     background:#ccc;
     border-radius:10px;
+    margin-top:10px;
     overflow:hidden;
 }
 
 .progress-bar{
     height:100%;
     width:0%;
-    background:#00ff88;
+    background:#00ff99;
 }
 
-/* MOBILE FIX */
-@media(max-width:600px){
-    body{align-items:flex-start;padding-top:40px;}
+/* TIMER */
+.timer{
+    color:white;
+    margin-top:8px;
+    font-size:14px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="box">
+<div class="container">
 
 <h2>🔥 Vidzo Downloader</h2>
 
-<input id="url" placeholder="Paste link">
+<input type="text" id="url" placeholder="Paste link">
 
 <button onclick="getVideo()">Get Video</button>
 
-<select id="type" onchange="toggleQuality()">
-<option value="mp4">MP4</option>
-<option value="mp3">MP3</option>
+<select id="type">
+    <option value="mp4">MP4</option>
+    <option value="mp3">MP3</option>
 </select>
 
 <select id="quality"></select>
 
-<div id="preview"></div>
+<div class="video-box" id="videoBox"></div>
 
-<button onclick="startDownload()">Download</button>
+<button onclick="download()">Download</button>
 
-<p id="timer"></p>
+<div class="timer" id="timer"></div>
 
 <div class="progress">
-<div class="progress-bar" id="bar"></div>
+    <div class="progress-bar" id="bar"></div>
 </div>
 
 </div>
 
 <script>
+let currentPlatform = ""
+let directLink = ""
 
-let platform=""
-
+// 🔥 GET VIDEO INFO
 function getVideo(){
-    let url=document.getElementById("url").value
+    let url = document.getElementById("url").value
 
     fetch("/info",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({url})
     })
-    .then(r=>r.json())
+    .then(res=>res.json())
     .then(data=>{
+        if(data.error){
+            alert(data.error)
+            return
+        }
 
-        if(data.error){alert(data.error);return;}
+        currentPlatform = data.platform
+        directLink = data.direct || ""
 
-        platform=data.platform
+        let box = document.getElementById("videoBox")
+        box.innerHTML = `
+            <img src="${data.thumbnail}">
+            <p>${data.title}</p>
+        `
 
-        document.getElementById("preview").innerHTML=
-        `<img src="${data.thumbnail}">
-        <p>${data.title}</p>`
+        let q = document.getElementById("quality")
+        q.innerHTML = ""
 
-        let q=document.getElementById("quality")
-        q.innerHTML=""
-
-        if(platform=="youtube"){
+        // 🎥 YOUTUBE QUALITY
+        if(data.platform==="youtube"){
             data.formats.forEach(f=>{
-                let o=document.createElement("option")
-                o.value=f.format_id
-                o.text=f.quality
-                q.appendChild(o)
+                q.innerHTML += `<option value="${f.format_id}">${f.quality}</option>`
             })
             q.style.display="block"
         }else{
@@ -139,48 +172,53 @@ function getVideo(){
     })
 }
 
-function toggleQuality(){
-    let type=document.getElementById("type").value
-    let q=document.getElementById("quality")
-
-    if(type=="mp3") q.style.display="none"
-    else if(platform=="youtube") q.style.display="block"
-}
-
-function startDownload(){
-    let t=3
-    let timer=document.getElementById("timer")
-
-    let interval=setInterval(()=>{
-        timer.innerText="Downloading in "+t+" sec..."
-        t--
-        if(t<0){
-            clearInterval(interval)
-            download()
-        }
-    },1000)
-}
-
+// 🔥 DOWNLOAD
 function download(){
-    let url=document.getElementById("url").value
-    let type=document.getElementById("type").value
-    let format_id=document.getElementById("quality").value
+    let url = document.getElementById("url").value
+    let type = document.getElementById("type").value
+    let format_id = document.getElementById("quality").value
+
+    // 🔥 INSTA DIRECT
+    if(directLink){
+        window.open(directLink,"_blank")
+        return
+    }
 
     fetch("/download",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({url,type,format_id})
+        body:JSON.stringify({
+            url,
+            type,
+            format_id
+        })
     })
-    .then(r=>r.json())
+    .then(res=>res.json())
     .then(data=>{
-        if(data.error){alert(data.error);return;}
+        if(data.error){
+            alert(data.error)
+            return
+        }
 
-        document.getElementById("bar").style.width="100%"
+        // 🔥 TIMER EFFECT
+        let sec = 5
+        let timer = document.getElementById("timer")
+        let bar = document.getElementById("bar")
 
-        window.location="/file?id="+data.id
+        let interval = setInterval(()=>{
+            timer.innerText = "Downloading in "+sec+" sec..."
+            bar.style.width = ((5-sec)*20)+"%"
+            sec--
+
+            if(sec<0){
+                clearInterval(interval)
+                window.location = "/file?id="+data.id
+                timer.innerText=""
+                bar.style.width="0%"
+            }
+        },1000)
     })
 }
-
 </script>
 
 </body>
