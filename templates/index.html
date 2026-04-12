@@ -2,225 +2,151 @@
 <html>
 <head>
 <title>Vidzo Downloader</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{
-  margin:0;
-  font-family: Arial;
-  background: linear-gradient(135deg,#667eea,#764ba2);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
-  color:white;
+    margin:0;
+    font-family:sans-serif;
+    background: linear-gradient(135deg,#5f9cff,#7b3fe4);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
 }
 
-.card{
-  width:90%;
-  max-width:380px;
-  background: rgba(255,255,255,0.08);
-  padding:20px;
-  border-radius:20px;
-  backdrop-filter: blur(15px);
-  box-shadow:0 10px 30px rgba(0,0,0,0.3);
+.box{
+    background:rgba(255,255,255,0.1);
+    backdrop-filter:blur(10px);
+    padding:20px;
+    border-radius:20px;
+    width:90%;
+    max-width:400px;
+    text-align:center;
 }
 
-h2{
-  text-align:center;
-}
-
-input, select{
-  width:100%;
-  padding:12px;
-  margin-top:12px;
-  border:none;
-  border-radius:10px;
+input,select,button{
+    width:100%;
+    padding:12px;
+    margin:10px 0;
+    border-radius:10px;
+    border:none;
 }
 
 button{
-  width:100%;
-  padding:12px;
-  margin-top:15px;
-  border:none;
-  border-radius:10px;
-  background:red;
-  color:white;
-  font-weight:bold;
+    background:red;
+    color:white;
+    font-weight:bold;
 }
 
-.progress-bar{
-  width:100%;
-  background:#ccc;
-  height:8px;
-  border-radius:10px;
-  margin-top:15px;
-}
-
-.progress{
-  height:100%;
-  width:0%;
-  background:white;
-  border-radius:10px;
-}
-
-#preview img{
-  width:100%;
-  border-radius:12px;
-  margin-top:15px;
+img{
+    width:100%;
+    border-radius:10px;
 }
 </style>
+
 </head>
 
 <body>
 
-<div class="card">
+<div class="box">
 
 <h2>🔥 Vidzo Downloader</h2>
 
-<input type="text" id="url" placeholder="Paste link">
+<input id="url" placeholder="Paste link">
 
-<button onclick="getInfo()">Get Video</button>
+<button onclick="getVideo()">Get Video</button>
 
-<select id="type" style="display:none">
-  <option value="video">MP4</option>
-  <option value="mp3">MP3</option>
+<select id="type" onchange="toggleQuality()">
+<option value="mp4">MP4</option>
+<option value="mp3">MP3</option>
 </select>
 
-<select id="quality" style="display:none"></select>
+<select id="quality"></select>
 
 <div id="preview"></div>
 
-<button onclick="downloadVideo()">Download</button>
-
-<div class="progress-bar">
-  <div id="progress" class="progress"></div>
-</div>
-
-<p id="percent" style="text-align:center">0%</p>
+<button onclick="download()">Download</button>
 
 </div>
 
 <script>
 
-let file_id = "";
-let platform = "";
+let currentPlatform = ""
 
-/* 🔥 GET INFO */
-function getInfo(){
+function getVideo(){
+    let url = document.getElementById("url").value
 
-  let url = document.getElementById("url").value;
-
-  fetch("/info",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({url:url})
-  })
-  .then(res=>res.json())
-  .then(data=>{
-
-    platform = data.platform;
-
-    document.getElementById("preview").innerHTML = `
-      <img src="${data.thumbnail}">
-      <h4>${data.title}</h4>
-    `;
-
-    let type = document.getElementById("type");
-    let quality = document.getElementById("quality");
-
-    type.style.display = "block";
-
-    // 🔥 INSTAGRAM
-    if(platform === "instagram"){
-      quality.style.display = "none";
-    }
-
-    // 🔥 YOUTUBE
-    else{
-
-      type.onchange = function(){
-
-        if(type.value === "mp3"){
-          quality.style.display = "none";
-        }else{
-          quality.style.display = "block";
-          loadQuality(data.formats);
-        }
-
-      };
-
-      // default MP4
-      quality.style.display = "block";
-      loadQuality(data.formats);
-    }
-
-  });
-}
-
-/* 🔥 LOAD QUALITY */
-function loadQuality(formats){
-
-  let q = document.getElementById("quality");
-  q.innerHTML = "";
-
-  formats.forEach(f=>{
-    let opt = document.createElement("option");
-    opt.value = f.format_id;
-    opt.text = f.quality;
-    q.appendChild(opt);
-  });
-
-}
-
-/* 🔥 DOWNLOAD */
-function downloadVideo(){
-
-  let url = document.getElementById("url").value;
-  let type = document.getElementById("type").value;
-  let format_id = document.getElementById("quality").value;
-
-  fetch("/download",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      url:url,
-      type:type,
-      format_id:format_id
+    fetch("/info",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url})
     })
-  })
-  .then(res=>res.json())
-  .then(data=>{
-    file_id = data.id;
-    trackProgress();
-  });
-
-}
-
-/* 🔥 PROGRESS */
-function trackProgress(){
-
-  let interval = setInterval(()=>{
-
-    fetch("/progress")
     .then(res=>res.json())
     .then(data=>{
 
-      document.getElementById("progress").style.width =
-        data.percent + "%";
+        if(data.error){
+            alert(data.error)
+            return
+        }
 
-      document.getElementById("percent").innerText =
-        Math.floor(data.percent) + "%";
+        currentPlatform = data.platform
 
-      if(data.percent >= 100){
-        clearInterval(interval);
-        window.location = "/file?id=" + file_id;
-      }
+        // preview
+        document.getElementById("preview").innerHTML = `
+            ${data.thumbnail ? `<img src="${data.thumbnail}">` : ""}
+            <p>${data.title}</p>
+        `
 
-    });
+        let q = document.getElementById("quality")
+        q.innerHTML = ""
 
-  },1000);
+        if(data.platform === "youtube"){
+            data.formats.forEach(f=>{
+                let opt = document.createElement("option")
+                opt.value = f.format_id
+                opt.text = f.quality
+                q.appendChild(opt)
+            })
+            q.style.display="block"
+        } else {
+            q.style.display="none"
+        }
 
+    })
+}
+
+function toggleQuality(){
+    let type = document.getElementById("type").value
+    let q = document.getElementById("quality")
+
+    if(type === "mp3"){
+        q.style.display="none"
+    } else {
+        if(currentPlatform === "youtube"){
+            q.style.display="block"
+        }
+    }
+}
+
+function download(){
+    let url = document.getElementById("url").value
+    let type = document.getElementById("type").value
+    let format_id = document.getElementById("quality").value
+
+    fetch("/download",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url,type,format_id})
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        if(data.error){
+            alert(data.error)
+            return
+        }
+
+        window.location = "/file?id=" + data.id
+    })
 }
 
 </script>
