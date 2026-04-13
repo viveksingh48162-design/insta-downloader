@@ -90,7 +90,7 @@ def get_formats():
             "short": True
         })
 
-    allowed = [360p, 720p, 1080p, 2160p]
+    allowed = [360, 720, 1080, 2160]
     video = []
     seen = set()
 
