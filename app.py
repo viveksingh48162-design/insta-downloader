@@ -1,171 +1,169 @@
 from flask import Flask, render_template, request, jsonify, send_file
-from flask_cors import CORS
 import yt_dlp
 import os
-import re
-import time
+import uuid
 
 app = Flask(__name__)
-CORS(app)
 
 DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 
-def clean_filename(name):
-    return re.sub(r'[^a-zA-Z0-9]', '_', name)
-
-
-def fix_url(url):
-    if "youtube.com/shorts/" in url:
-        vid = url.split("/shorts/")[1].split("?")[0]
-        return f"https://www.youtube.com/watch?v={vid}"
-    return url
-
-
-# 🔥 ADVANCED CONFIG
-def get_opts(format_id=None):
-    opts = {
-        "quiet": True,
-        "noplaylist": True,
-        "geo_bypass": True,
-        "nocheckcertificate": True,
-
-        "http_headers": {
-            "User-Agent": "Mozilla/5.0"
-        },
-
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "web", "ios"]
-            }
-        },
-
-        "age_limit": 99
-    }
-
-    # 🔥 FORMAT LOGIC
-    if format_id == "bestaudio":
-        opts["format"] = "bestaudio"
-        opts["postprocessors"] = [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "192"
-        }]
-    elif format_id:
-        opts["format"] = format_id
-    else:
-        opts["format"] = "best[ext=mp4]/best"
-
-    return opts
-
-
-# 🔁 SAFE RETRY SYSTEM
-def safe_extract(url, download=False, format_id=None, outtmpl=None):
-    url = fix_url(url)
-
-    for _ in range(3):
-        try:
-            opts = get_opts(format_id)
-
-            if download:
-                opts["outtmpl"] = outtmpl
-
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                return ydl.extract_info(url, download=download)
-
-        except Exception as e:
-            print("Retry:", e)
-            time.sleep(1)
-
-    return None
-
-
+# ✅ HOME
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# 🎬 VIDEO INFO
+# ✅ GET VIDEO INFO
 @app.route("/get_video", methods=["POST"])
 def get_video():
     url = request.json.get("url")
 
-    info = safe_extract(url)
+    try:
+        ydl_opts = {
+            "quiet": True,
+            "noplaylist": True,
+            "nocheckcertificate": True,
+            "ignoreerrors": True,
+            "geo_bypass": True,
+            "extract_flat": False
+        }
 
-    if not info:
-        return jsonify({"error": "❌ YouTube blocked / Try another video"})
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
 
-    return jsonify({
-        "title": info.get("title"),
-        "thumbnail": info.get("thumbnail"),
-        "is_short": info.get("duration", 0) < 60,
-        "is_insta": "instagram.com" in url
-    })
+        if not info:
+            return jsonify({"error": "❌ Video fetch failed"})
+
+        return jsonify({
+            "title": info.get("title"),
+            "thumbnail": info.get("thumbnail"),
+            "is_insta": "instagram.com" in url
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"❌ Error: {str(e)}"})
 
 
-# 🎯 FORMATS
+# ✅ GET FORMATS
 @app.route("/get_formats", methods=["POST"])
 def get_formats():
     url = request.json.get("url")
 
-    info = safe_extract(url)
+    try:
+        ydl_opts = {
+            "quiet": True,
+            "noplaylist": True,
+            "nocheckcertificate": True,
+            "ignoreerrors": True,
+            "geo_bypass": True
+        }
 
-    if not info:
-        return jsonify({"error": "❌ Failed to fetch formats"})
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
 
-    # INSTAGRAM + SHORTS
-    if "instagram.com" in url or info.get("duration", 0) < 60:
-        return jsonify({
-            "video": [{"format_id": "best", "quality": "MP4"}],
-            "audio": [{"format_id": "bestaudio", "quality": "MP3"}]
-        })
+        if not info:
+            return jsonify({"error": "❌ Cannot fetch formats"})
 
-    # YOUTUBE LONG
-    video = []
-    allowed = [360, 720, 1080, 2160]
-    seen = set()
+        # 🔥 INSTAGRAM SIMPLE
+        if "instagram.com" in url:
+            return jsonify({
+                "short": True,
+                "video": [{"format_id": "best", "quality": "HD"}],
+                "audio": [{"format_id": "bestaudio", "quality": "MP3"}]
+            })
 
-    for f in info.get("formats", []):
-        h = f.get("height")
+        video = []
+        audio = []
 
-        if f.get("vcodec") != "none" and h in allowed:
-            if h not in seen:
-                seen.add(h)
-                video.append({
+        seen = set()
+        allowed = [360, 480, 720, 1080]
+
+        for f in info.get("formats", []):
+            h = f.get("height")
+
+            # 🎬 VIDEO
+            if f.get("vcodec") != "none" and h in allowed:
+                if h not in seen:
+                    seen.add(h)
+                    video.append({
+                        "format_id": f.get("format_id"),
+                        "quality": f"{h}p"
+                    })
+
+            # 🎧 AUDIO
+            if f.get("vcodec") == "none" and f.get("acodec") != "none":
+                audio.append({
                     "format_id": f.get("format_id"),
-                    "quality": f"{h}p"
+                    "quality": "MP3"
                 })
 
-    return jsonify({
-        "video": video,
-        "audio": [{"format_id": "bestaudio", "quality": "MP3"}]
-    })
+        if not video:
+            video = [{"format_id": "best", "quality": "Auto"}]
+
+        if not audio:
+            audio = [{"format_id": "bestaudio", "quality": "MP3"}]
+
+        return jsonify({
+            "short": False,
+            "video": video,
+            "audio": audio
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"❌ Format error: {str(e)}"})
 
 
-# 🚀 DOWNLOAD
+# ✅ DOWNLOAD
 @app.route("/download", methods=["POST"])
 def download():
     data = request.json
     url = data.get("url")
     format_id = data.get("format_id")
+    type_ = data.get("type")
 
-    filename = clean_filename(str(os.urandom(6).hex()))
+    try:
+        filename = str(uuid.uuid4()) + ".mp4"
 
-    info = safe_extract(
-        url,
-        download=True,
-        format_id=format_id,
-        outtmpl=f"{DOWNLOAD_FOLDER}/{filename}.%(ext)s"
-    )
+        ydl_opts = {
+            "outtmpl": os.path.join(DOWNLOAD_FOLDER, filename),
+            "quiet": True,
+            "noplaylist": True,
+            "nocheckcertificate": True,
+            "ignoreerrors": True,
+            "geo_bypass": True
+        }
 
-    if not info:
-        return jsonify({"error": "❌ Download failed"})
+        # 🎧 AUDIO FIX (IMPORTANT)
+        if type_ == "audio":
+            ydl_opts["format"] = "bestaudio"
+            ydl_opts["postprocessors"] = [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192",
+            }]
+        else:
+            ydl_opts["format"] = format_id
 
-    ext = "mp3" if format_id == "bestaudio" else "mp4"
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
 
-    return send_file(f"{DOWNLOAD_FOLDER}/{filename}.{ext}", as_attachment=True)
+        return jsonify({
+            "download_url": f"/file/{filename}"
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"❌ Download failed: {str(e)}"})
 
 
+# ✅ SERVE FILE
+@app.route("/file/<filename>")
+def serve_file(filename):
+    path = os.path.join(DOWNLOAD_FOLDER, filename)
+    return send_file(path, as_attachment=True)
+
+
+# ✅ RUN
 if __name__ == "__main__":
     app.run(debug=True)
