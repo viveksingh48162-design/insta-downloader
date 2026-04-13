@@ -24,10 +24,12 @@ input {
     border-radius: 10px;
     border: none;
     cursor: pointer;
-    font-weight: bold;
 }
 
 .get { background: #00c6ff; }
+.fast { background: orange; }
+.turbo { background: red; }
+
 .box {
     background: rgba(255,255,255,0.2);
     margin: 8px;
@@ -36,7 +38,6 @@ input {
     border-radius: 10px;
 }
 </style>
-
 </head>
 
 <body>
@@ -46,7 +47,7 @@ input {
 <input id="url" placeholder="Paste URL here">
 <br>
 
-<button class="btn get" onclick="getVideo()">Get Video</button>
+<button class="btn get" onclick="autoFetch()">Get Video</button>
 
 <div id="video"></div>
 <div id="options"></div>
@@ -54,57 +55,70 @@ input {
 <script>
 
 let URL = ""
+let MODE = "fast"
 
-function getVideo() {
+// 🔥 AUTO FETCH
+document.getElementById("url").addEventListener("change", autoFetch)
+
+function autoFetch(){
     URL = document.getElementById("url").value
 
-    document.getElementById("video").innerHTML = "Loading..."
+    if(!URL){
+        alert("Paste URL first")
+        return
+    }
+
+    document.getElementById("video").innerHTML = "⏳ Loading..."
 
     fetch("/get_video", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({url: URL})
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(r=>r.json())
+    .then(data=>{
 
         if(data.error){
             document.getElementById("video").innerHTML = data.error
             return
         }
 
-        document.getElementById("video").innerHTML =
-            `<h3>${data.title}</h3>
-             <img src="${data.thumbnail}" width="200"><br>`
+        document.getElementById("video").innerHTML = `
+            <h3>${data.title}</h3>
+            <img src="${data.thumbnail}" width="220"><br>
 
-        loadFormats()
+            <button class="btn fast" onclick="choose('fast')">⚡ Fast</button>
+            <button class="btn turbo" onclick="choose('turbo')">🔥 Turbo</button>
+        `
     })
 }
 
 
-function loadFormats(){
-    document.getElementById("options").innerHTML = "Loading formats..."
+function choose(mode){
+    MODE = mode
+
+    document.getElementById("options").innerHTML = "⏳ Loading qualities..."
 
     fetch("/get_formats", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({url: URL})
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(r=>r.json())
+    .then(data=>{
 
         if(data.error){
             document.getElementById("options").innerHTML = data.error
             return
         }
 
-        let html = "<h2>Video</h2>"
+        let html = "<h2>🎥 Video</h2>"
 
         data.video.forEach(v=>{
             html += `<div class="box" onclick="download('${v.format_id}','video')">${v.quality}</div>`
         })
 
-        html += "<h2>Audio</h2>"
+        html += "<h2>🎧 Audio</h2>"
 
         data.audio.forEach(a=>{
             html += `<div class="box" onclick="download('${a.format_id}','audio')">${a.quality}</div>`
@@ -122,11 +136,12 @@ function download(format_id, type){
         body: JSON.stringify({
             url: URL,
             format_id,
-            type
+            type,
+            mode: MODE
         })
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(r=>r.json())
+    .then(data=>{
 
         if(data.error){
             alert(data.error)
