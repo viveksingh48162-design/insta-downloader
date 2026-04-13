@@ -1,6 +1,6 @@
-flask
+Flask
 flask-cors
+Flask-Cors
 yt-dlp
 gunicorn
-ffmpeg-python
 requests
