@@ -23,54 +23,50 @@ def fix_url(url):
     return url
 
 
-# 🔥 MULTI CONFIG SYSTEM
-def get_configs():
-    return [
+# 🔥 ADVANCED CONFIG
+def get_opts(format_id=None):
+    opts = {
+        "quiet": True,
+        "noplaylist": True,
+        "geo_bypass": True,
+        "nocheckcertificate": True,
 
-        # ✅ CONFIG 1 (Android)
-        {
-            "format": "best[ext=mp4]/best",
-            "http_headers": {
-                "User-Agent": "com.google.android.youtube/17.31.35"
-            },
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android"]
-                }
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0"
+        },
+
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web", "ios"]
             }
         },
 
-        # ✅ CONFIG 2 (Web)
-        {
-            "format": "best[ext=mp4]/best",
-            "http_headers": {
-                "User-Agent": "Mozilla/5.0"
-            }
-        },
+        "age_limit": 99
+    }
 
-        # ✅ CONFIG 3 (Low quality fallback)
-        {
-            "format": "worst[ext=mp4]/best",
-            "http_headers": {
-                "User-Agent": "Mozilla/5.0"
-            }
-        }
-    ]
+    # 🔥 FORMAT LOGIC
+    if format_id == "bestaudio":
+        opts["format"] = "bestaudio"
+        opts["postprocessors"] = [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192"
+        }]
+    elif format_id:
+        opts["format"] = format_id
+    else:
+        opts["format"] = "best[ext=mp4]/best"
+
+    return opts
 
 
-# 🔥 SAFE EXTRACT (RETRY SYSTEM)
-def safe_extract(url, download=False, outtmpl=None):
+# 🔁 SAFE RETRY SYSTEM
+def safe_extract(url, download=False, format_id=None, outtmpl=None):
     url = fix_url(url)
 
-    for config in get_configs():
+    for _ in range(3):
         try:
-            opts = {
-                "quiet": True,
-                "noplaylist": True,
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                **config
-            }
+            opts = get_opts(format_id)
 
             if download:
                 opts["outtmpl"] = outtmpl
@@ -79,7 +75,7 @@ def safe_extract(url, download=False, outtmpl=None):
                 return ydl.extract_info(url, download=download)
 
         except Exception as e:
-            print("Retry config failed:", e)
+            print("Retry:", e)
             time.sleep(1)
 
     return None
@@ -118,14 +114,14 @@ def get_formats():
     if not info:
         return jsonify({"error": "❌ Failed to fetch formats"})
 
-    # 🔥 Insta / Shorts
+    # INSTAGRAM + SHORTS
     if "instagram.com" in url or info.get("duration", 0) < 60:
         return jsonify({
             "video": [{"format_id": "best", "quality": "MP4"}],
             "audio": [{"format_id": "bestaudio", "quality": "MP3"}]
         })
 
-    # 🔥 Long video
+    # YOUTUBE LONG
     video = []
     allowed = [360, 720, 1080, 2160]
     seen = set()
@@ -159,22 +155,16 @@ def download():
     info = safe_extract(
         url,
         download=True,
+        format_id=format_id,
         outtmpl=f"{DOWNLOAD_FOLDER}/{filename}.%(ext)s"
     )
 
     if not info:
-        return jsonify({"error": "❌ Download failed (blocked)"})
+        return jsonify({"error": "❌ Download failed"})
 
-    ext = "mp4"
+    ext = "mp3" if format_id == "bestaudio" else "mp4"
 
-    return jsonify({
-        "download_url": f"/downloads/{filename}.{ext}"
-    })
-
-
-@app.route("/downloads/<path:filename>")
-def serve_file(filename):
-    return send_file(f"{DOWNLOAD_FOLDER}/{filename}")
+    return send_file(f"{DOWNLOAD_FOLDER}/{filename}.{ext}", as_attachment=True)
 
 
 if __name__ == "__main__":
