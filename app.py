@@ -79,7 +79,7 @@ def home():
     return render_template("index.html")
 
 
-# 📺 VIDEO INFO
+# 🎬 VIDEO INFO
 @app.route("/get_video", methods=["POST"])
 def get_video():
     url = request.json.get("url")
