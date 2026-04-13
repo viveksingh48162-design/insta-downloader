@@ -12,28 +12,45 @@ os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 # 🔹 clean filename
 def clean_filename(name):
-    return re.sub(r'[^a-zA-Z0-9]', '_', name)
+    return re.sub(r'[^a-zA-Z0-9]', '_', name or "video")
+
+# 🔹 fix shorts → watch URL
+def fix_url(url):
+    if "youtube.com/shorts/" in url:
+        vid = url.split("/shorts/")[1].split("?")[0]
+        return f"https://www.youtube.com/watch?v={vid}"
+    return url
 
 # 🔹 detect short content
 def is_short(url):
     return (
         "instagram.com" in url or
-        "youtube.com/shorts" in url or
-        "youtu.be" in url
+        "youtu.be" in url or
+        "shorts" in url
     )
 
-# 🔹 home
+# 🔹 base yt-dlp options (ANTI BLOCK 🔥)
+def base_opts():
+    return {
+        "quiet": True,
+        "nocheckcertificate": True,
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+    }
+
+# 🔹 HOME
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# 🔹 get video info
+# 🔹 GET VIDEO INFO
 @app.route("/get_video", methods=["POST"])
 def get_video():
-    url = request.json.get("url")
+    url = fix_url(request.json.get("url"))
 
     try:
-        with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+        with yt_dlp.YoutubeDL(base_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
 
         return jsonify({
@@ -44,20 +61,17 @@ def get_video():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# 🔹 formats
+# 🔹 GET FORMATS
 @app.route("/get_formats", methods=["POST"])
 def get_formats():
-    url = request.json.get("url")
+    url = fix_url(request.json.get("url"))
 
     try:
-        # 🔥 SHORT → direct MP3/MP4
+        # 🔥 SHORT → no quality, direct options
         if is_short(url):
-            return jsonify({
-                "short": True
-            })
+            return jsonify({"short": True})
 
-        # 🔥 LONG YOUTUBE → limited qualities
-        with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+        with yt_dlp.YoutubeDL(base_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
 
         video = []
@@ -83,23 +97,24 @@ def get_formats():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# 🔹 download
+# 🔹 DOWNLOAD
 @app.route("/download", methods=["POST"])
 def download():
     data = request.json
-    url = data.get("url")
+    url = fix_url(data.get("url"))
     format_id = data.get("format_id")
     type_ = data.get("type")
 
     try:
-        with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+        with yt_dlp.YoutubeDL(base_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
 
         title = clean_filename(info.get("title"))
 
-        # 🔥 AUDIO
+        # 🔥 AUDIO (MP3)
         if type_ == "audio":
             ydl_opts = {
+                **base_opts(),
                 "outtmpl": f"{DOWNLOAD_FOLDER}/{title}.%(ext)s",
                 "format": "bestaudio",
                 "postprocessors": [{
@@ -113,12 +128,14 @@ def download():
         else:
             if is_short(url):
                 ydl_opts = {
+                    **base_opts(),
                     "outtmpl": f"{DOWNLOAD_FOLDER}/{title}.%(ext)s",
                     "format": "best",
                     "merge_output_format": "mp4"
                 }
             else:
                 ydl_opts = {
+                    **base_opts(),
                     "outtmpl": f"{DOWNLOAD_FOLDER}/{title}.%(ext)s",
                     "format": f"{format_id}+bestaudio/best",
                     "merge_output_format": "mp4"
@@ -136,7 +153,7 @@ def download():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# 🔹 serve file
+# 🔹 SERVE FILE
 @app.route("/file/<path:filename>")
 def serve_file(filename):
     return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
