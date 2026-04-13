@@ -39,6 +39,7 @@ input {
     border-radius: 10px;
 }
 </style>
+
 </head>
 
 <body>
@@ -46,11 +47,9 @@ input {
 <h1>🚀 Vidzo Downloader</h1>
 
 <input id="url" placeholder="Paste URL here">
-
 <br>
 
-<!-- ✅ GET VIDEO BUTTON -->
-<button class="btn get" onclick="autoFetch()">🎬 Get Video</button>
+<button class="btn get" onclick="autoFetch()">📺 Get Video</button>
 
 <div id="video"></div>
 <div id="options"></div>
@@ -59,9 +58,6 @@ input {
 
 let URL = ""
 let MODE = ""
-
-// 🔥 AUTO DETECT (optional)
-document.getElementById("url").addEventListener("change", autoFetch)
 
 function autoFetch(){
     URL = document.getElementById("url").value
@@ -73,14 +69,13 @@ function autoFetch(){
 
     document.getElementById("video").innerHTML = "⏳ Loading..."
 
-    fetch("/get_video",{
+    fetch("/get_video", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({url:URL})
     })
     .then(r=>r.json())
     .then(data=>{
-
         if(data.error){
             document.getElementById("video").innerHTML = data.error
             return
@@ -90,8 +85,8 @@ function autoFetch(){
             <h3>${data.title}</h3>
             <img src="${data.thumbnail}" width="220"><br>
 
-            <button class="btn fast" onclick="choose('fast')">🚀 Fast Download</button>
-            <button class="btn turbo" onclick="choose('turbo')">⚡ Turbo Download</button>
+            <button class="btn fast" onclick="choose('fast')">⚡ Fast Download</button>
+            <button class="btn turbo" onclick="choose('turbo')">🔥 Turbo Download</button>
         `
     })
 }
@@ -101,18 +96,13 @@ function choose(mode){
 
     document.getElementById("options").innerHTML = "⏳ Loading qualities..."
 
-    fetch("/get_formats",{
+    fetch("/get_formats", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({url:URL})
     })
     .then(r=>r.json())
     .then(data=>{
-
-        if(data.error){
-            document.getElementById("options").innerHTML = data.error
-            return
-        }
 
         let html = "<h2>🎬 Video</h2>"
 
@@ -132,7 +122,7 @@ function choose(mode){
 
 function download(format_id, type){
 
-    fetch("/download",{
+    fetch("/download", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
@@ -144,16 +134,12 @@ function download(format_id, type){
     })
     .then(r=>r.json())
     .then(data=>{
-
         if(data.error){
             alert(data.error)
             return
         }
 
-        // 🚀 FAST → direct
-        // ⚡ TURBO → file download
         window.open(data.download_url)
-
     })
 }
 
