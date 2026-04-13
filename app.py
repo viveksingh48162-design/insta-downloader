@@ -12,39 +12,63 @@ CORS(app)
 DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# 🔥 CLEAN FILE NAME
+# 🔥 CLEAN NAME
 def clean_filename(name):
     return re.sub(r'[^a-zA-Z0-9]', '_', name)
+
+
+# 🔥 FIX SHORTS
+def fix_url(url):
+    if "youtube.com/shorts/" in url:
+        vid = url.split("/shorts/")[1].split("?")[0]
+        return f"https://www.youtube.com/watch?v={vid}"
+    return url
 
 
 # 🔥 COOKIE ROTATION
 def get_cookie():
     try:
         files = os.listdir("cookies")
+        if not files:
+            return None
         return os.path.join("cookies", random.choice(files))
     except:
         return None
 
 
-# 🔥 SAFE EXTRACT (ANTI BLOCK)
+# 🔥 USER AGENT ROTATION
+def get_headers():
+    return {
+        "User-Agent": random.choice([
+            "Mozilla/5.0",
+            "Chrome/120.0",
+            "Safari/537.36"
+        ])
+    }
+
+
+# 🔥 SAFE EXTRACT (CORE)
 def safe_extract(url):
+    url = fix_url(url)
+
     for i in range(5):
         try:
             ydl_opts = {
                 "quiet": True,
                 "cookiefile": get_cookie(),
                 "noplaylist": True,
-                "http_headers": {
-                    "User-Agent": "Mozilla/5.0"
-                }
+                "http_headers": get_headers()
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(url, download=False)
+                info = ydl.extract_info(url, download=False)
+
+                if info:
+                    return info
 
         except Exception as e:
             print("Retry:", e)
-            time.sleep(2)
+            time.sleep(random.uniform(1, 3))
 
     return None
 
@@ -55,141 +79,129 @@ def home():
     return render_template("index.html")
 
 
-# 📺 GET VIDEO (thumbnail + title)
+# 📺 VIDEO INFO
 @app.route("/get_video", methods=["POST"])
 def get_video():
     url = request.json.get("url")
 
-    try:
-        info = safe_extract(url)
+    info = safe_extract(url)
 
-        return jsonify({
-            "title": info.get("title"),
-            "thumbnail": info.get("thumbnail"),
-            "is_insta": "instagram.com" in url
-        })
+    if not info:
+        return jsonify({"error": "❌ Failed (blocked or cookies needed)"})
 
-    except Exception as e:
-        return jsonify({"error": str(e)})
+    return jsonify({
+        "title": info.get("title"),
+        "thumbnail": info.get("thumbnail"),
+        "is_insta": "instagram.com" in url
+    })
 
 
-# 🎬 GET FORMATS
+# 🎬 FORMATS
 @app.route("/get_formats", methods=["POST"])
 def get_formats():
     url = request.json.get("url")
 
-    try:
-        info = safe_extract(url)
+    info = safe_extract(url)
 
-        video = []
-        audio = []
-        allowed = [360, 720, 1080, 2160]
-        seen = set()
+    if not info:
+        return jsonify({"error": "❌ Cannot fetch formats"})
 
-        # 🔥 INSTAGRAM SIMPLE
-        if "instagram.com" in url:
-            return jsonify({
-                "video": [{"format_id": "best", "quality": "HD"}],
-                "audio": [{"format_id": "bestaudio", "quality": "MP3"}]
-            })
+    video = []
+    audio = []
+    seen = set()
+    allowed = [360, 720, 1080, 2160]
 
-        # 🎥 YOUTUBE
-        for f in info.get("formats", []):
-            h = f.get("height")
-
-            # VIDEO
-            if f.get("vcodec") != "none" and h in allowed:
-                if h not in seen:
-                    seen.add(h)
-                    video.append({
-                        "format_id": f.get("format_id"),
-                        "quality": f"{h}p"
-                    })
-
-            # AUDIO
-            if f.get("acodec") != "none" and f.get("vcodec") == "none":
-                audio.append({
-                    "format_id": f.get("format_id"),
-                    "quality": f"{int(f.get('abr') or 128)} kbps"
-                })
-
+    if "instagram.com" in url:
         return jsonify({
-            "video": video,
-            "audio": audio
+            "video": [{"format_id": "best", "quality": "HD"}],
+            "audio": [{"format_id": "bestaudio", "quality": "MP3"}]
         })
 
-    except Exception as e:
-        return jsonify({"error": str(e)})
+    for f in info.get("formats", []):
+        h = f.get("height")
+
+        # VIDEO
+        if f.get("vcodec") != "none" and h in allowed:
+            if h not in seen:
+                seen.add(h)
+                video.append({
+                    "format_id": f.get("format_id"),
+                    "quality": f"{h}p"
+                })
+
+        # AUDIO
+        if f.get("acodec") != "none" and f.get("vcodec") == "none":
+            audio.append({
+                "format_id": f.get("format_id"),
+                "quality": f"{int(f.get('abr') or 128)} kbps"
+            })
+
+    return jsonify({
+        "video": video,
+        "audio": audio
+    })
 
 
-# 🚀 DOWNLOAD (FAST + TURBO)
+# 🚀 DOWNLOAD
 @app.route("/download", methods=["POST"])
 def download():
     data = request.json
+
     url = data.get("url")
     format_id = data.get("format_id")
     type_ = data.get("type")
     mode = data.get("mode")
 
-    try:
-        info = safe_extract(url)
-        safe_title = clean_filename(info.get("title"))
+    info = safe_extract(url)
 
-        # ⚡ FAST MODE
-        if mode == "fast":
-            for f in info.get("formats"):
-                if f.get("format_id") == format_id:
-                    return jsonify({
-                        "download_url": f.get("url")
-                    })
+    if not info:
+        return jsonify({"error": "❌ Download failed"})
 
-            return jsonify({"error": "Fast link not found"})
+    safe_title = clean_filename(info.get("title"))
 
-        # 🔥 TURBO MODE
-        ydl_opts = {
-            "outtmpl": f"{DOWNLOAD_FOLDER}/{safe_title}.%(ext)s",
-            "quiet": True,
-            "cookiefile": get_cookie(),
-        }
-
-        # AUDIO
-        if type_ == "audio":
-            ydl_opts.update({
-                "format": "bestaudio",
-                "postprocessors": [{
-                    "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3",
-                    "preferredquality": "192"
-                }]
-            })
-
-        # VIDEO
-        else:
-            if "instagram.com" in url:
-                ydl_opts.update({
-                    "format": "best",
-                    "merge_output_format": "mp4"
-                })
-            else:
-                ydl_opts.update({
-                    "format": f"{format_id}+bestaudio/best",
-                    "merge_output_format": "mp4"
+    # ⚡ FAST MODE
+    if mode == "fast":
+        for f in info.get("formats"):
+            if f.get("format_id") == format_id:
+                return jsonify({
+                    "download_url": f.get("url")
                 })
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+        return jsonify({"error": "Fast link not found"})
 
-        filename = safe_title + (".mp3" if type_ == "audio" else ".mp4")
+    # 🔥 TURBO MODE
+    ydl_opts = {
+        "outtmpl": f"{DOWNLOAD_FOLDER}/{safe_title}.%(ext)s",
+        "quiet": True,
+        "cookiefile": get_cookie()
+    }
 
-        return jsonify({
-            "download_url": f"/downloads/{filename}"
+    if type_ == "audio":
+        ydl_opts.update({
+            "format": "bestaudio",
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3"
+            }]
         })
 
-    except Exception as e:
-        return jsonify({"error": str(e)})
+    else:
+        ydl_opts.update({
+            "format": f"{format_id}+bestaudio/best",
+            "merge_output_format": "mp4"
+        })
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+    filename = safe_title + (".mp3" if type_ == "audio" else ".mp4")
+
+    return jsonify({
+        "download_url": f"/downloads/{filename}"
+    })
 
 
-# 📂 SERVE FILE
+# 📂 SERVE
 @app.route("/downloads/<path:filename>")
 def serve_file(filename):
     return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
