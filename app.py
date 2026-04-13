@@ -14,6 +14,8 @@ os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 # 🔥 CLEAN NAME
 def clean_filename(name):
+    if not name:
+        return "video"
     return re.sub(r'[^a-zA-Z0-9]', '_', name)
 
 
@@ -25,7 +27,7 @@ def fix_url(url):
     return url
 
 
-# 🔥 SAFE EXTRACT (NO COOKIES)
+# 🔥 SAFE EXTRACT
 def safe_extract(url):
     url = fix_url(url)
 
@@ -58,7 +60,7 @@ def home():
     return render_template("index.html")
 
 
-# 🎬 GET VIDEO INFO
+# 🎬 GET VIDEO
 @app.route("/get_video", methods=["POST"])
 def get_video():
     url = request.json.get("url")
@@ -93,7 +95,7 @@ def get_formats():
         audio = []
         seen = set()
 
-        # 🔥 Instagram simple fix
+        # 🔥 Instagram simple
         if "instagram.com" in url:
             return jsonify({
                 "video": [{"format_id": "best", "quality": "HD"}],
@@ -119,22 +121,20 @@ def get_formats():
                     "quality": f"{int(f.get('abr') or 128)} kbps"
                 })
 
-        return jsonify({
-            "video": video,
-            "audio": audio
-        })
+        return jsonify({"video": video, "audio": audio})
 
     except Exception as e:
         return jsonify({"error": str(e)})
 
 
-# 🚀 DOWNLOAD
+# 🚀 DOWNLOAD (FAST + TURBO)
 @app.route("/download", methods=["POST"])
 def download():
     data = request.json
     url = data.get("url")
     format_id = data.get("format_id")
     type_ = data.get("type")
+    mode = data.get("mode")
 
     try:
         info = safe_extract(url)
@@ -144,6 +144,17 @@ def download():
 
         safe_title = clean_filename(info.get("title"))
 
+        # ⚡ FAST MODE (DIRECT LINK)
+        if mode == "fast":
+            for f in info.get("formats", []):
+                if f.get("format_id") == format_id:
+                    return jsonify({
+                        "download_url": f.get("url")
+                    })
+
+            return jsonify({"error": "Fast link not found"})
+
+        # 🔥 TURBO MODE (DOWNLOAD FILE)
         ydl_opts = {
             "outtmpl": f"{DOWNLOAD_FOLDER}/{safe_title}.%(ext)s",
             "quiet": True
@@ -192,6 +203,5 @@ def serve_file(filename):
     return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
 
 
-# ▶️ RUN
 if __name__ == "__main__":
     app.run(debug=True)
