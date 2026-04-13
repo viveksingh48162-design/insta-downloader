@@ -1,6 +1,6 @@
 Flask
 flask-cors
 Flask-Cors
-yt-dlp
+yt-dlp>=2025.01.01
 gunicorn
 requests
