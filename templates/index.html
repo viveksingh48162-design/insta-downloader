@@ -1,224 +1,162 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vidzo Downloader</title>
+<title>Vidzo Online 🚀</title>
 
 <style>
-body{
-    margin:0;
-    font-family:Arial, sans-serif;
-    background:linear-gradient(135deg,#4facfe,#8e44ad);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
+body {
+    background: linear-gradient(135deg, #36d1dc, #5b86e5);
+    font-family: Arial;
+    text-align: center;
+    color: white;
 }
 
-/* CARD */
-.container{
-    background:rgba(255,255,255,0.1);
-    backdrop-filter:blur(15px);
-    padding:25px;
-    border-radius:20px;
-    width:380px;
-    text-align:center;
-    box-shadow:0 10px 30px rgba(0,0,0,0.2);
+input {
+    padding: 12px;
+    width: 320px;
+    border-radius: 10px;
+    border: none;
 }
 
-/* MOBILE FIX */
-@media(max-width:500px){
-    body{align-items:flex-end;}
-    .container{
-        width:90%;
-        margin-bottom:40px;
-    }
+.btn {
+    padding: 10px 20px;
+    margin: 10px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
 }
 
-h2{
-    color:white;
-    margin-bottom:15px;
-}
+.get { background: #00c6ff; }
+.fast { background: orange; }
+.turbo { background: red; }
 
-/* INPUT */
-input,select{
-    width:100%;
-    padding:12px;
-    margin:8px 0;
-    border:none;
-    border-radius:10px;
-    outline:none;
-}
-
-/* BUTTON */
-button{
-    width:100%;
-    padding:12px;
-    margin-top:10px;
-    border:none;
-    border-radius:10px;
-    background:red;
-    color:white;
-    font-weight:bold;
-    cursor:pointer;
-}
-
-/* VIDEO PREVIEW */
-.video-box{
-    margin-top:15px;
-    color:white;
-}
-
-.video-box img{
-    width:100%;
-    border-radius:10px;
-}
-
-/* PROGRESS */
-.progress{
-    height:6px;
-    background:#ccc;
-    border-radius:10px;
-    margin-top:10px;
-    overflow:hidden;
-}
-
-.progress-bar{
-    height:100%;
-    width:0%;
-    background:#00ff99;
-}
-
-/* TIMER */
-.timer{
-    color:white;
-    margin-top:8px;
-    font-size:14px;
+.box {
+    background: rgba(255,255,255,0.2);
+    margin: 8px;
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<h1>🚀 Vidzo Downloader</h1>
 
-<h2>🔥 Vidzo Downloader</h2>
+<input id="url" placeholder="Paste URL here">
 
-<input type="text" id="url" placeholder="Paste link">
+<br>
 
-<button onclick="getVideo()">Get Video</button>
+<!-- ✅ GET VIDEO BUTTON -->
+<button class="btn get" onclick="autoFetch()">🎬 Get Video</button>
 
-<select id="type">
-    <option value="mp4">MP4</option>
-    <option value="mp3">MP3</option>
-</select>
-
-<select id="quality"></select>
-
-<div class="video-box" id="videoBox"></div>
-
-<button onclick="download()">Download</button>
-
-<div class="timer" id="timer"></div>
-
-<div class="progress">
-    <div class="progress-bar" id="bar"></div>
-</div>
-
-</div>
+<div id="video"></div>
+<div id="options"></div>
 
 <script>
-let currentPlatform = ""
-let directLink = ""
 
-// 🔥 GET VIDEO INFO
-function getVideo(){
-    let url = document.getElementById("url").value
+let URL = ""
+let MODE = ""
 
-    fetch("/info",{
+// 🔥 AUTO DETECT (optional)
+document.getElementById("url").addEventListener("change", autoFetch)
+
+function autoFetch(){
+    URL = document.getElementById("url").value
+
+    if(!URL){
+        alert("Paste URL first")
+        return
+    }
+
+    document.getElementById("video").innerHTML = "⏳ Loading..."
+
+    fetch("/get_video",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({url})
+        body:JSON.stringify({url:URL})
     })
-    .then(res=>res.json())
+    .then(r=>r.json())
     .then(data=>{
+
         if(data.error){
-            alert(data.error)
+            document.getElementById("video").innerHTML = data.error
             return
         }
 
-        currentPlatform = data.platform
-        directLink = data.direct || ""
+        document.getElementById("video").innerHTML = `
+            <h3>${data.title}</h3>
+            <img src="${data.thumbnail}" width="220"><br>
 
-        let box = document.getElementById("videoBox")
-        box.innerHTML = `
-            <img src="${data.thumbnail}">
-            <p>${data.title}</p>
+            <button class="btn fast" onclick="choose('fast')">🚀 Fast Download</button>
+            <button class="btn turbo" onclick="choose('turbo')">⚡ Turbo Download</button>
         `
-
-        let q = document.getElementById("quality")
-        q.innerHTML = ""
-
-        // 🎥 YOUTUBE QUALITY
-        if(data.platform==="youtube"){
-            data.formats.forEach(f=>{
-                q.innerHTML += `<option value="${f.format_id}">${f.quality}</option>`
-            })
-            q.style.display="block"
-        }else{
-            q.style.display="none"
-        }
     })
 }
 
-// 🔥 DOWNLOAD
-function download(){
-    let url = document.getElementById("url").value
-    let type = document.getElementById("type").value
-    let format_id = document.getElementById("quality").value
+function choose(mode){
+    MODE = mode
 
-    // 🔥 INSTA DIRECT
-    if(directLink){
-        window.open(directLink,"_blank")
-        return
-    }
+    document.getElementById("options").innerHTML = "⏳ Loading qualities..."
+
+    fetch("/get_formats",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url:URL})
+    })
+    .then(r=>r.json())
+    .then(data=>{
+
+        if(data.error){
+            document.getElementById("options").innerHTML = data.error
+            return
+        }
+
+        let html = "<h2>🎬 Video</h2>"
+
+        data.video.forEach(v=>{
+            html += `<div class="box" onclick="download('${v.format_id}','video')">${v.quality}</div>`
+        })
+
+        html += "<h2>🎧 Audio</h2>"
+
+        data.audio.forEach(a=>{
+            html += `<div class="box" onclick="download('${a.format_id}','audio')">${a.quality}</div>`
+        })
+
+        document.getElementById("options").innerHTML = html
+    })
+}
+
+function download(format_id, type){
 
     fetch("/download",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
-            url,
+            url: URL,
+            format_id,
             type,
-            format_id
+            mode: MODE
         })
     })
-    .then(res=>res.json())
+    .then(r=>r.json())
     .then(data=>{
+
         if(data.error){
             alert(data.error)
             return
         }
 
-        // 🔥 TIMER EFFECT
-        let sec = 5
-        let timer = document.getElementById("timer")
-        let bar = document.getElementById("bar")
+        // 🚀 FAST → direct
+        // ⚡ TURBO → file download
+        window.open(data.download_url)
 
-        let interval = setInterval(()=>{
-            timer.innerText = "Downloading in "+sec+" sec..."
-            bar.style.width = ((5-sec)*20)+"%"
-            sec--
-
-            if(sec<0){
-                clearInterval(interval)
-                window.location = "/file?id="+data.id
-                timer.innerText=""
-                bar.style.width="0%"
-            }
-        },1000)
     })
 }
+
 </script>
 
 </body>
