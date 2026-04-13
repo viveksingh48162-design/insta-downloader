@@ -6,33 +6,19 @@
 <style>
 body {
     background: linear-gradient(135deg, #36d1dc, #5b86e5);
-    font-family: Arial;
     text-align: center;
     color: white;
 }
 
 input {
     padding: 12px;
-    width: 320px;
+    width: 300px;
     border-radius: 10px;
-    border: none;
 }
-
-.btn {
-    padding: 10px 20px;
-    margin: 10px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-}
-
-.get { background: #00c6ff; }
-.fast { background: orange; }
-.turbo { background: red; }
 
 .box {
     background: rgba(255,255,255,0.2);
-    margin: 8px;
+    margin: 10px;
     padding: 12px;
     cursor: pointer;
     border-radius: 10px;
@@ -44,10 +30,10 @@ input {
 
 <h1>🚀 Vidzo Downloader</h1>
 
-<input id="url" placeholder="Paste URL here">
-<br>
+<input id="url" placeholder="Paste URL">
+<br><br>
 
-<button class="btn get" onclick="autoFetch()">Get Video</button>
+<button onclick="load()">Get Video</button>
 
 <div id="video"></div>
 <div id="options"></div>
@@ -55,74 +41,53 @@ input {
 <script>
 
 let URL = ""
-let MODE = "fast"
 
-// 🔥 AUTO FETCH
-document.getElementById("url").addEventListener("change", autoFetch)
-
-function autoFetch(){
+function load(){
     URL = document.getElementById("url").value
 
-    if(!URL){
-        alert("Paste URL first")
-        return
-    }
-
-    document.getElementById("video").innerHTML = "⏳ Loading..."
-
     fetch("/get_video", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({url: URL})
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url:URL})
     })
     .then(r=>r.json())
     .then(data=>{
 
-        if(data.error){
-            document.getElementById("video").innerHTML = data.error
-            return
-        }
+        document.getElementById("video").innerHTML =
+            `<h3>${data.title}</h3>
+             <img src="${data.thumbnail}" width="200"><br>`
 
-        document.getElementById("video").innerHTML = `
-            <h3>${data.title}</h3>
-            <img src="${data.thumbnail}" width="220"><br>
-
-            <button class="btn fast" onclick="choose('fast')">⚡ Fast</button>
-            <button class="btn turbo" onclick="choose('turbo')">🔥 Turbo</button>
-        `
+        loadFormats(data.is_short)
     })
 }
 
 
-function choose(mode){
-    MODE = mode
-
-    document.getElementById("options").innerHTML = "⏳ Loading qualities..."
+function loadFormats(is_short){
 
     fetch("/get_formats", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({url: URL})
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url:URL})
     })
     .then(r=>r.json())
     .then(data=>{
 
-        if(data.error){
-            document.getElementById("options").innerHTML = data.error
-            return
+        let html = ""
+
+        // 🔥 SHORT MODE
+        if(data.short){
+            html += `<div class="box" onclick="download('best','video')">🎥 Download MP4</div>`
+            html += `<div class="box" onclick="download('best','audio')">🎧 Download MP3</div>`
         }
 
-        let html = "<h2>🎥 Video</h2>"
+        // 🎬 LONG VIDEO
+        else{
+            data.video.forEach(v=>{
+                html += `<div class="box" onclick="download('${v.format_id}','video')">${v.quality}</div>`
+            })
 
-        data.video.forEach(v=>{
-            html += `<div class="box" onclick="download('${v.format_id}','video')">${v.quality}</div>`
-        })
-
-        html += "<h2>🎧 Audio</h2>"
-
-        data.audio.forEach(a=>{
-            html += `<div class="box" onclick="download('${a.format_id}','audio')">${a.quality}</div>`
-        })
+            html += `<div class="box" onclick="download('best','audio')">🎧 MP3</div>`
+        }
 
         document.getElementById("options").innerHTML = html
     })
@@ -131,23 +96,16 @@ function choose(mode){
 
 function download(format_id, type){
     fetch("/download", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            url: URL,
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            url:URL,
             format_id,
-            type,
-            mode: MODE
+            type
         })
     })
     .then(r=>r.json())
     .then(data=>{
-
-        if(data.error){
-            alert(data.error)
-            return
-        }
-
         window.open(data.download_url)
     })
 }
