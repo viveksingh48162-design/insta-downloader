@@ -8,10 +8,10 @@
 
 body{
 height:100vh;
-font-family:Segoe UI;
+font-family:'Segoe UI',sans-serif;
 background:linear-gradient(-45deg,#36d1dc,#5b86e5,#ffa600,#ee0979);
 background-size:400% 400%;
-animation:gradientBG 10s ease infinite;
+animation:gradientBG 12s ease infinite;
 display:flex;
 justify-content:center;
 align-items:center;
@@ -27,22 +27,35 @@ color:white;
 .container{
 background:rgba(255,255,255,0.1);
 backdrop-filter:blur(15px);
-padding:30px;
+padding:40px;
 border-radius:20px;
 width:420px;
 text-align:center;
 box-shadow:0 0 40px rgba(0,0,0,0.2);
 }
 
-h1{margin-bottom:15px;}
+h1{margin-bottom:20px;font-size:28px;}
 
 input{
 width:100%;
-padding:12px;
-border-radius:10px;
+padding:14px;
+border-radius:12px;
 border:none;
 outline:none;
 text-align:center;
+font-size:14px;
+}
+
+.btn{
+margin-top:10px;
+padding:12px;
+width:100%;
+border:none;
+border-radius:12px;
+background:linear-gradient(90deg,#00c6ff,#0072ff);
+color:white;
+cursor:pointer;
+font-weight:bold;
 }
 
 .box{
@@ -56,6 +69,7 @@ transition:.3s;
 
 .box:hover{
 transform:scale(1.05);
+background:rgba(255,255,255,0.3);
 }
 
 .loader{
@@ -71,15 +85,22 @@ animation:spin 1s linear infinite;
 @keyframes spin{
 100%{transform:rotate(360deg);}
 }
+
+img{
+margin-top:10px;
+border-radius:10px;
+}
 </style>
 </head>
 
 <body>
 
 <div class="container">
+
 <h1>🚀 Vidzo Downloader</h1>
 
-<input id="url" placeholder="Paste URL here...">
+<input id="url" placeholder="Paste URL here">
+<button class="btn" onclick="autoFetch()">Get Video</button>
 
 <div id="video"></div>
 <div id="options"></div>
@@ -89,24 +110,25 @@ animation:spin 1s linear infinite;
 <script>
 
 let URL = ""
+let videoData = {}
 
-// 🔥 AUTO FETCH
+// 🔥 AUTO + BUTTON BOTH
 document.getElementById("url").addEventListener("input", autoFetch)
 
 async function autoFetch(){
+
 URL = document.getElementById("url").value.trim()
 
-// 🔄 RESET instantly
+// 🔄 reset
 if(!URL){
 video.innerHTML=""
 options.innerHTML=""
 return
 }
 
-// ⏳ loader
 video.innerHTML = '<div class="loader"></div>'
 
-// 🔍 fetch video info
+// 🔍 fetch
 let res = await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -114,9 +136,10 @@ body:JSON.stringify({url:URL})
 })
 
 let data = await res.json()
+videoData = data
 
 if(data.error){
-video.innerHTML = "❌ " + data.error
+video.innerHTML="❌ "+data.error
 return
 }
 
@@ -126,39 +149,49 @@ video.innerHTML = `
 <img src="${data.thumbnail}" width="220">
 `
 
-// ⚡ show modes
+// 🎯 STEP 1 → FAST / TURBO
 options.innerHTML = `
-<div class="box" onclick="fastDownload()">⚡ FAST DOWNLOAD</div>
-<div class="box" onclick="turboMode()">🚀 TURBO DOWNLOAD</div>
+<div class="box" onclick="fast()">⚡ FAST DOWNLOAD</div>
+<div class="box" onclick="turbo()">🚀 TURBO DOWNLOAD</div>
 `
 }
 
-// ⚡ FAST DOWNLOAD
-function fastDownload(){
-fetch("/download",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-url:URL,
-mode:"fast"
-})
-})
-.then(r=>r.json())
-.then(d=>{
-if(d.error){
-alert(d.error)
-return
-}
-window.open(d.download_url)
-})
+// ⚡ FAST FLOW
+function fast(){
+
+// insta / shorts
+if(videoData.is_short || videoData.is_insta){
+options.innerHTML = `
+<div class="box" onclick="download('best','fast','video')">🎥 MP4</div>
+<div class="box" onclick="download('bestaudio','fast','audio')">🎧 MP3</div>
+`
 }
 
-// 🚀 TURBO MODE
-async function turboMode(){
+// youtube long
+else{
+options.innerHTML = `
+<div class="box" onclick="download('best','fast','video')">🎥 MP4</div>
+<div class="box" onclick="download('bestaudio','fast','audio')">🎧 MP3</div>
+`
+}
+}
+
+// 🚀 TURBO FLOW
+async function turbo(){
+
+// insta / shorts → no quality
+if(videoData.is_short || videoData.is_insta){
+options.innerHTML = `
+<div class="box" onclick="download('best','turbo','video')">🎥 MP4</div>
+<div class="box" onclick="download('bestaudio','turbo','audio')">🎧 MP3</div>
+`
+}
+
+// youtube long → quality
+else{
 
 options.innerHTML = '<div class="loader"></div>'
 
-// 📦 get formats
 let res = await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -171,25 +204,27 @@ let html = ""
 
 // 🎥 video qualities
 data.video.forEach(v=>{
-html += `<div class="box" onclick="download('${v.format_id}','video')">🎥 ${v.quality}</div>`
+html += `<div class="box" onclick="download('${v.format_id}','turbo','video')">🎥 ${v.quality}</div>`
 })
 
 // 🎧 audio
-html += `<div class="box" onclick="download('bestaudio','audio')">🎧 MP3</div>`
+html += `<div class="box" onclick="download('bestaudio','turbo','audio')">🎧 MP3</div>`
 
 options.innerHTML = html
 }
+}
 
 // ⬇️ DOWNLOAD
-function download(format_id,type){
+function download(format_id,mode,type){
+
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 url:URL,
-mode:"turbo",
-format_id,
-type
+mode:mode,
+format_id:format_id,
+type:type
 })
 })
 .then(r=>r.json())
