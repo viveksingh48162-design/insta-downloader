@@ -4,7 +4,7 @@
 <title>Vidzo Online 🚀</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ✅ POPUNDER AD -->
+<!-- ✅ POPUNDER -->
 <script src="https://pl29000129.profitabecpmratenetwork.com/69/f6/d0/69f6d0b0577bd5d107b5848d3ce10205.js"></script>
 
 <style>
@@ -41,14 +41,11 @@ max-width:500px;
 box-shadow:0 0 40px rgba(0,0,0,0.2);
 }
 
-h1{margin-bottom:20px;}
-
 input{
 width:100%;
 padding:14px;
 border-radius:12px;
 border:none;
-outline:none;
 text-align:center;
 }
 
@@ -72,16 +69,23 @@ border-radius:10px;
 cursor:pointer;
 transition:0.3s;
 }
-
 .box:hover{transform:scale(1.05);}
 
-img{
-margin-top:10px;
-border-radius:10px;
-width:220px;
-}
+img{margin-top:10px;border-radius:10px;width:220px;}
 
 #loader{display:none;margin-top:15px;}
+.progress-bar{
+height:6px;
+background:rgba(255,255,255,0.2);
+border-radius:10px;
+margin-top:10px;
+}
+.progress-fill{
+height:100%;
+width:0%;
+background:#00c6ff;
+transition:0.3s;
+}
 </style>
 </head>
 
@@ -93,18 +97,32 @@ width:220px;
 <input id="url" placeholder="Paste URL here">
 <button class="btn" onclick="autoFetch()">Get Video</button>
 
-<div id="loader">Loading...</div>
+<div id="loader">
+<div class="progress-bar">
+<div id="progressFill" class="progress-fill"></div>
+</div>
+</div>
+
 <div id="video"></div>
 <div id="options"></div>
-
 </div>
 
 <script>
 let URL=""
 let videoData={}
 let formatsData={}
+let interval
 
+// ✅ AUTO FETCH (debounce)
+let timer;
+document.getElementById("url").addEventListener("input", ()=>{
+clearTimeout(timer)
+timer=setTimeout(autoFetch,800)
+})
+
+// 🚀 FETCH VIDEO
 async function autoFetch(){
+
 URL=document.getElementById("url").value.trim()
 
 if(!URL){
@@ -113,9 +131,17 @@ options.innerHTML=""
 return
 }
 
+// loader start
 loader.style.display="block"
-video.innerHTML=""
-options.innerHTML=""
+progressFill.style.width="0%"
+let progress=0
+
+interval=setInterval(()=>{
+if(progress<90){
+progress+=5
+progressFill.style.width=progress+"%"
+}
+},200)
 
 let res=await fetch("/get_video",{
 method:"POST",
@@ -124,7 +150,10 @@ body:JSON.stringify({url:URL})
 })
 
 let data=await res.json()
-loader.style.display="none"
+
+clearInterval(interval)
+progressFill.style.width="100%"
+setTimeout(()=>loader.style.display="none",400)
 
 if(data.error){
 video.innerHTML=data.error
@@ -138,20 +167,45 @@ video.innerHTML=`
 <img src="${data.thumbnail}">
 `
 
+// STEP 1
 options.innerHTML=`
 <div class="box" onclick="fast()">⚡ FAST</div>
 <div class="box" onclick="turbo()">🚀 TURBO</div>
 `
 }
 
+// ⚡ FAST
 function fast(){
+
+// insta/fb/shorts → no quality
+if(videoData.is_short || videoData.is_social){
+options.innerHTML=`
+<div class="box" onclick="download('best','video')">MP4</div>
+<div class="box" onclick="download('bestaudio','audio')">MP3</div>
+`
+return
+}
+
+// youtube long → normal options
 options.innerHTML=`
 <div class="box" onclick="download('best','video')">MP4</div>
 <div class="box" onclick="download('bestaudio','audio')">MP3</div>
 `
 }
 
+// 🚀 TURBO
 async function turbo(){
+
+// insta/fb/shorts → no quality
+if(videoData.is_short || videoData.is_social){
+options.innerHTML=`
+<div class="box" onclick="download('best','video')">MP4</div>
+<div class="box" onclick="download('bestaudio','audio')">MP3</div>
+`
+return
+}
+
+// youtube long → quality fetch
 let res=await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -166,6 +220,7 @@ options.innerHTML=`
 `
 }
 
+// MP4 QUALITY
 function showMP4(){
 let html=""
 formatsData.video.forEach(v=>{
@@ -174,6 +229,7 @@ html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality
 options.innerHTML=html
 }
 
+// MP3 QUALITY
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('bestaudio','audio')">128kbps</div>
@@ -181,9 +237,10 @@ options.innerHTML=`
 `
 }
 
+// ⬇ DOWNLOAD
 function download(format_id,type){
 
-// ✅ SMARTLINK AD
+// 💰 SMARTLINK
 window.open("https://www.profitabecpmratenetwork.com/e03jq01p?key=dba654ad0abd4feeda13436792f2ec85","_blank")
 
 fetch("/download",{
@@ -195,7 +252,7 @@ body:JSON.stringify({url:URL,format_id,type})
 .then(d=>{
 if(d.error){alert(d.error);return}
 
-// delay ke baad original download
+// delay download
 setTimeout(()=>{
 window.open(d.download_url)
 },1000)
@@ -204,7 +261,7 @@ window.open(d.download_url)
 }
 </script>
 
-<!-- ✅ SOCIAL BAR AD -->
+<!-- ✅ SOCIAL BAR -->
 <script src="https://pl29000130.profitabecpmratenetwork.com/ae/f4/54/aef454ad9f7ef7c436c5f59c47eb6e8b.js"></script>
 
 </body>
