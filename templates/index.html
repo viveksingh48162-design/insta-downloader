@@ -5,19 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-
 body{
 height:100vh;
-font-family:Segoe UI,sans-serif;
+font-family:Segoe UI;
 background:linear-gradient(-45deg,#36d1dc,#5b86e5,#ffa600,#ee0979);
 background-size:400% 400%;
-animation:gradientBG 12s ease infinite;
+animation:gradientBG 10s ease infinite;
 display:flex;
 justify-content:center;
 align-items:flex-start;
 color:white;
-padding:20px;
 padding-top:80px;
 }
 
@@ -30,20 +27,19 @@ padding-top:80px;
 .container{
 background:rgba(255,255,255,0.1);
 backdrop-filter:blur(15px);
-padding:35px;
+padding:30px;
 border-radius:20px;
 text-align:center;
-width:95%;
+width:90%;
 max-width:500px;
-box-shadow:0 0 40px rgba(0,0,0,0.2);
 }
 
 input{
 width:100%;
 padding:14px;
-border-radius:12px;
+border-radius:10px;
 border:none;
-text-align:center;
+margin-top:10px;
 }
 
 .btn{
@@ -51,8 +47,8 @@ margin-top:10px;
 padding:12px;
 width:100%;
 border:none;
-border-radius:12px;
-background:linear-gradient(90deg,#00c6ff,#0072ff);
+border-radius:10px;
+background:#00c6ff;
 color:white;
 font-weight:bold;
 cursor:pointer;
@@ -61,35 +57,21 @@ cursor:pointer;
 .box{
 background:rgba(255,255,255,0.2);
 margin-top:10px;
-padding:12px;
+padding:10px;
 border-radius:10px;
 cursor:pointer;
-transition:0.3s;
 }
-.box:hover{transform:scale(1.05);}
-
-img{margin-top:10px;border-radius:10px;width:220px;}
 
 #loader{display:none;margin-top:15px;}
-.progress-bar{
-height:6px;
-background:rgba(255,255,255,0.2);
-border-radius:10px;
-margin-top:10px;
-}
-.progress-fill{
-height:100%;
-width:0%;
-background:#00c6ff;
-transition:0.3s;
-}
+.progress-bar{height:6px;background:rgba(255,255,255,0.2);}
+.progress-fill{height:100%;width:0;background:#00c6ff;}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-<h1>🚀 Vidzo Downloader</h1>
+<h2>🚀 Vidzo Downloader</h2>
 
 <input id="url" placeholder="Paste URL here">
 <button class="btn" onclick="autoFetch()">Get Video</button>
@@ -102,126 +84,134 @@ transition:0.3s;
 
 <div id="video"></div>
 <div id="options"></div>
+
 </div>
 
 <script>
-let URL=""
-let videoData={}
-let formatsData={}
-let interval
+let URL="";
+let videoData={};
+let formatsData={};
+let progress=0;
+let interval;
 
-// ✅ AutoFetch
-let timer;
-document.getElementById("url").addEventListener("input", ()=>{
-clearTimeout(timer)
-timer=setTimeout(autoFetch,800)
-})
+// ✅ AUTO FETCH
+document.getElementById("url").addEventListener("input", autoFetch);
 
 async function autoFetch(){
 
-URL=document.getElementById("url").value.trim()
+URL=document.getElementById("url").value.trim();
 
 if(!URL){
-video.innerHTML=""
-options.innerHTML=""
-return
+video.innerHTML="";
+options.innerHTML="";
+return;
 }
 
-// loader start
-loader.style.display="block"
-progressFill.style.width="0%"
-let progress=0
+// 🔥 LOADER START
+loader.style.display="block";
+video.innerHTML="";
+options.innerHTML="";
+progress=0;
 
 interval=setInterval(()=>{
 if(progress<90){
-progress+=5
-progressFill.style.width=progress+"%"
+progress+=5;
+progressFill.style.width=progress+"%";
 }
-},200)
+},200);
 
+// API CALL
 let res=await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
-})
+});
 
-let data=await res.json()
+let data=await res.json();
+videoData=data;
 
-clearInterval(interval)
-progressFill.style.width="100%"
-setTimeout(()=>loader.style.display="none",400)
+clearInterval(interval);
+progressFill.style.width="100%";
+setTimeout(()=>{loader.style.display="none"},400);
 
+// ERROR
 if(data.error){
-video.innerHTML=data.error
-return
+video.innerHTML=data.error;
+return;
 }
 
-videoData=data
-
+// SHOW VIDEO
 video.innerHTML=`
 <h3>${data.title}</h3>
-<img src="${data.thumbnail}">
-`
+<img src="${data.thumbnail}" width="200">
+`;
 
+// OPTIONS
 options.innerHTML=`
 <div class="box" onclick="fast()">⚡ FAST</div>
 <div class="box" onclick="turbo()">🚀 TURBO</div>
-`
+`;
 }
 
-// FAST
+// ⚡ FAST
 function fast(){
+
+if(videoData.is_short || videoData.is_social){
 options.innerHTML=`
 <div class="box" onclick="download('best','video')">MP4</div>
 <div class="box" onclick="download('bestaudio','audio')">MP3</div>
-`
+`;
+}else{
+getFormats();
+}
 }
 
-// TURBO
-async function turbo(){
-
-if(videoData.is_short || videoData.is_social){
-fast()
-return
+// 🚀 TURBO
+function turbo(){
+fast();
 }
+
+// 🎯 GET FORMATS (YT LONG)
+async function getFormats(){
 
 let res=await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
-})
+});
 
-formatsData=await res.json()
+formatsData=await res.json();
 
 options.innerHTML=`
 <div class="box" onclick="showMP4()">MP4</div>
 <div class="box" onclick="showMP3()">MP3</div>
-`
+`;
 }
 
-// MP4 QUALITY
+// 📹 MP4 QUALITY
 function showMP4(){
-let html=""
+let html="";
 formatsData.video.forEach(v=>{
-html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality}</div>`
-})
-options.innerHTML=html
+html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality}</div>`;
+});
+options.innerHTML=html;
 }
 
-// MP3
+// 🎧 MP3
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('bestaudio','audio')">128kbps</div>
 <div class="box" onclick="download('bestaudio','audio')">256kbps</div>
-`
+`;
 }
 
-// DOWNLOAD
+// ⬇ DOWNLOAD + DIRECT LINK AD
 function download(format_id,type){
 
-// 💰 SMARTLINK
-window.open("https://www.profitabecpmratenetwork.com/e03jq01p?key=dba654ad0abd4feeda13436792f2ec85","_blank")
+// 🔥 AD (earning)
+window.open("https://omg10.com/4/10875597","_blank");
 
+// DOWNLOAD
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -230,22 +220,16 @@ body:JSON.stringify({url:URL,format_id,type})
 .then(r=>r.json())
 .then(d=>{
 if(d.error){alert(d.error);return}
-
-setTimeout(()=>{
 window.open(d.download_url)
-},1000)
-
-})
-}
-
-// 💰 FIRST CLICK AD
-let adShown=false;
-document.body.addEventListener("click",function(){
-if(!adShown){
-adShown=true;
-window.open("https://www.profitabecpmratenetwork.com/e03jq01p?key=dba654ad0abd4feeda13436792f2ec85","_blank");
-}
 });
+}
+
+// 🔥 SERVICE WORKER REGISTER
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('/sw.js')
+.then(()=>console.log("SW Active"))
+.catch(()=>console.log("SW Failed"));
+}
 </script>
 
 </body>
