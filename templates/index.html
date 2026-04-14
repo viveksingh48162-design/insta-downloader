@@ -2,15 +2,17 @@
 <html>
 <head>
 <title>Vidzo Online 🚀</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- ✅ POPUNDER AD -->
+<script src="https://pl29000129.profitabecpmratenetwork.com/69/f6/d0/69f6d0b0577bd5d107b5848d3ce10205.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 
 body{
 height:100vh;
-font-family:'Segoe UI',sans-serif;
+font-family:Segoe UI,sans-serif;
 background:linear-gradient(-45deg,#36d1dc,#5b86e5,#ffa600,#ee0979);
 background-size:400% 400%;
 animation:gradientBG 12s ease infinite;
@@ -70,80 +72,39 @@ border-radius:10px;
 cursor:pointer;
 transition:0.3s;
 }
+
 .box:hover{transform:scale(1.05);}
 
-img{margin-top:10px;border-radius:10px;width:220px;}
-
-/* 🔥 LOADER */
-#loader{display:none;margin-top:15px;}
-
-.loader-box{
-background:rgba(0,0,0,0.2);
-padding:15px;
-border-radius:15px;
-}
-
-.plane3d{
-font-size:40px;
-animation:fly 1s infinite;
-}
-
-@keyframes fly{
-0%{transform:translateX(-20px);}
-50%{transform:translateX(20px);}
-100%{transform:translateX(-20px);}
-}
-
-.progress-bar{
-height:6px;
-background:rgba(255,255,255,0.2);
+img{
 margin-top:10px;
 border-radius:10px;
+width:220px;
 }
 
-.progress-fill{
-height:100%;
-width:0%;
-background:#00c6ff;
-transition:0.3s;
-}
+#loader{display:none;margin-top:15px;}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-
 <h1>🚀 Vidzo Downloader</h1>
 
 <input id="url" placeholder="Paste URL here">
 <button class="btn" onclick="autoFetch()">Get Video</button>
 
-<div id="loader">
-<div class="loader-box">
-<div class="plane3d">✈️</div>
-<div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
-</div>
-</div>
-
+<div id="loader">Loading...</div>
 <div id="video"></div>
 <div id="options"></div>
 
 </div>
 
 <script>
-
 let URL=""
 let videoData={}
 let formatsData={}
-let progress=0
-let interval
-
-// ✅ AUTO FETCH
-document.getElementById("url").addEventListener("input", autoFetch)
 
 async function autoFetch(){
-
 URL=document.getElementById("url").value.trim()
 
 if(!URL){
@@ -152,18 +113,9 @@ options.innerHTML=""
 return
 }
 
-// 🔥 loader start
-document.getElementById("loader").style.display="block"
+loader.style.display="block"
 video.innerHTML=""
 options.innerHTML=""
-
-progress=0
-interval=setInterval(()=>{
-if(progress<90){
-progress+=5
-document.getElementById("progressFill").style.width=progress+"%"
-}
-},200)
 
 let res=await fetch("/get_video",{
 method:"POST",
@@ -172,63 +124,34 @@ body:JSON.stringify({url:URL})
 })
 
 let data=await res.json()
-videoData=data
-
-clearInterval(interval)
-document.getElementById("progressFill").style.width="100%"
-setTimeout(()=>{loader.style.display="none"},400)
+loader.style.display="none"
 
 if(data.error){
 video.innerHTML=data.error
 return
 }
 
-// show video
+videoData=data
+
 video.innerHTML=`
 <h3>${data.title}</h3>
 <img src="${data.thumbnail}">
 `
 
-// STEP 1
 options.innerHTML=`
 <div class="box" onclick="fast()">⚡ FAST</div>
 <div class="box" onclick="turbo()">🚀 TURBO</div>
 `
 }
 
-// ⚡ FAST
 function fast(){
-
-// insta / fb / shorts
-if(videoData.is_short || videoData.is_social){
 options.innerHTML=`
 <div class="box" onclick="download('best','video')">MP4</div>
 <div class="box" onclick="download('bestaudio','audio')">MP3</div>
 `
 }
 
-// youtube long
-else{
-options.innerHTML=`
-<div class="box" onclick="download('best','video')">MP4</div>
-<div class="box" onclick="download('bestaudio','audio')">MP3</div>
-`
-}
-}
-
-// 🚀 TURBO
 async function turbo(){
-
-// insta/fb/shorts
-if(videoData.is_short || videoData.is_social){
-options.innerHTML=`
-<div class="box" onclick="download('best','video')">MP4</div>
-<div class="box" onclick="download('bestaudio','audio')">MP3</div>
-`
-return
-}
-
-// youtube long
 let res=await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -243,7 +166,6 @@ options.innerHTML=`
 `
 }
 
-// 🎥 MP4 QUALITY
 function showMP4(){
 let html=""
 formatsData.video.forEach(v=>{
@@ -252,7 +174,6 @@ html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality
 options.innerHTML=html
 }
 
-// 🎧 MP3 QUALITY
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('bestaudio','audio')">128kbps</div>
@@ -260,8 +181,11 @@ options.innerHTML=`
 `
 }
 
-// ⬇️ DOWNLOAD
 function download(format_id,type){
+
+// ✅ SMARTLINK AD
+window.open("https://www.profitabecpmratenetwork.com/e03jq01p?key=dba654ad0abd4feeda13436792f2ec85","_blank")
+
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -270,11 +194,18 @@ body:JSON.stringify({url:URL,format_id,type})
 .then(r=>r.json())
 .then(d=>{
 if(d.error){alert(d.error);return}
+
+// delay ke baad original download
+setTimeout(()=>{
 window.open(d.download_url)
+},1000)
+
 })
 }
-
 </script>
+
+<!-- ✅ SOCIAL BAR AD -->
+<script src="https://pl29000130.profitabecpmratenetwork.com/ae/f4/54/aef454ad9f7ef7c436c5f59c47eb6e8b.js"></script>
 
 </body>
 </html>
