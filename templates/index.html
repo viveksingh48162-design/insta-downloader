@@ -5,17 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+*{margin:0;padding:0;box-sizing:border-box;}
+
 body{
-height:100vh;
 font-family:Segoe UI;
 background:linear-gradient(-45deg,#36d1dc,#5b86e5,#ffa600,#ee0979);
 background-size:400% 400%;
 animation:gradientBG 10s ease infinite;
+color:white;
+min-height:100vh;
 display:flex;
 justify-content:center;
-align-items:flex-start;
-color:white;
-padding-top:80px;
+padding:20px;
 }
 
 @keyframes gradientBG{
@@ -25,21 +26,25 @@ padding-top:80px;
 }
 
 .container{
-background:rgba(255,255,255,0.1);
+background:rgba(255,255,255,0.12);
 backdrop-filter:blur(15px);
-padding:30px;
-border-radius:20px;
-text-align:center;
-width:90%;
+padding:20px;
+border-radius:18px;
+width:100%;
 max-width:500px;
+text-align:center;
+margin-top:40px;
 }
+
+h2{margin-bottom:10px;}
 
 input{
 width:100%;
 padding:14px;
-border-radius:10px;
 border:none;
+border-radius:10px;
 margin-top:10px;
+font-size:16px;
 }
 
 .btn{
@@ -52,19 +57,49 @@ background:#00c6ff;
 color:white;
 font-weight:bold;
 cursor:pointer;
+font-size:16px;
 }
 
 .box{
-background:rgba(255,255,255,0.2);
+background:rgba(255,255,255,0.25);
 margin-top:10px;
-padding:10px;
+padding:12px;
 border-radius:10px;
 cursor:pointer;
+font-size:15px;
+transition:0.2s;
+}
+
+.box:active{transform:scale(0.95);}
+
+img{
+width:100%;
+max-width:250px;
+margin-top:10px;
+border-radius:10px;
 }
 
 #loader{display:none;margin-top:15px;}
-.progress-bar{height:6px;background:rgba(255,255,255,0.2);}
-.progress-fill{height:100%;width:0;background:#00c6ff;}
+.progress{
+height:6px;
+background:rgba(255,255,255,0.3);
+border-radius:10px;
+overflow:hidden;
+}
+.progress div{
+height:100%;
+width:0%;
+background:#00c6ff;
+transition:0.3s;
+}
+
+/* 📱 Mobile spacing */
+@media(max-width:480px){
+.container{
+padding:15px;
+margin-top:20px;
+}
+}
 </style>
 </head>
 
@@ -77,9 +112,7 @@ cursor:pointer;
 <button class="btn" onclick="autoFetch()">Get Video</button>
 
 <div id="loader">
-<div class="progress-bar">
-<div id="progressFill" class="progress-fill"></div>
-</div>
+<div class="progress"><div id="bar"></div></div>
 </div>
 
 <div id="video"></div>
@@ -91,11 +124,14 @@ cursor:pointer;
 let URL="";
 let videoData={};
 let formatsData={};
-let progress=0;
 let interval;
 
-// ✅ AUTO FETCH
-document.getElementById("url").addEventListener("input", autoFetch);
+// 🔥 AutoFetch (mobile optimized)
+let timer;
+document.getElementById("url").addEventListener("input", ()=>{
+clearTimeout(timer);
+timer=setTimeout(autoFetch,700);
+});
 
 async function autoFetch(){
 
@@ -107,20 +143,16 @@ options.innerHTML="";
 return;
 }
 
-// 🔥 LOADER START
+// loader
 loader.style.display="block";
-video.innerHTML="";
-options.innerHTML="";
-progress=0;
+bar.style.width="0%";
+let p=0;
 
 interval=setInterval(()=>{
-if(progress<90){
-progress+=5;
-progressFill.style.width=progress+"%";
-}
+if(p<90){p+=5;bar.style.width=p+"%";}
 },200);
 
-// API CALL
+// API
 let res=await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -131,22 +163,21 @@ let data=await res.json();
 videoData=data;
 
 clearInterval(interval);
-progressFill.style.width="100%";
-setTimeout(()=>{loader.style.display="none"},400);
+bar.style.width="100%";
+setTimeout(()=>loader.style.display="none",400);
 
-// ERROR
 if(data.error){
 video.innerHTML=data.error;
 return;
 }
 
-// SHOW VIDEO
+// show video
 video.innerHTML=`
 <h3>${data.title}</h3>
-<img src="${data.thumbnail}" width="200">
+<img src="${data.thumbnail}">
 `;
 
-// OPTIONS
+// options
 options.innerHTML=`
 <div class="box" onclick="fast()">⚡ FAST</div>
 <div class="box" onclick="turbo()">🚀 TURBO</div>
@@ -167,11 +198,9 @@ getFormats();
 }
 
 // 🚀 TURBO
-function turbo(){
-fast();
-}
+function turbo(){ fast(); }
 
-// 🎯 GET FORMATS (YT LONG)
+// formats
 async function getFormats(){
 
 let res=await fetch("/get_formats",{
@@ -188,7 +217,7 @@ options.innerHTML=`
 `;
 }
 
-// 📹 MP4 QUALITY
+// mp4
 function showMP4(){
 let html="";
 formatsData.video.forEach(v=>{
@@ -197,7 +226,7 @@ html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality
 options.innerHTML=html;
 }
 
-// 🎧 MP3
+// mp3
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('bestaudio','audio')">128kbps</div>
@@ -205,13 +234,17 @@ options.innerHTML=`
 `;
 }
 
-// ⬇ DOWNLOAD + DIRECT LINK AD
+// 🔥 DOWNLOAD (MOBILE SAFE ADS)
 function download(format_id,type){
 
-// 🔥 AD (earning)
-window.open("https://omg10.com/4/10875597","_blank");
+// 👉 MOBILE SAFE AD (direct click)
+let ad = window.open("https://omg10.com/4/10875597","_blank");
 
-// DOWNLOAD
+if(!ad){
+alert("Allow popups to continue");
+}
+
+// original download
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -220,15 +253,13 @@ body:JSON.stringify({url:URL,format_id,type})
 .then(r=>r.json())
 .then(d=>{
 if(d.error){alert(d.error);return}
-window.open(d.download_url)
+window.open(d.download_url);
 });
 }
 
-// 🔥 SERVICE WORKER REGISTER
+// 🔥 Service Worker (background earning)
 if ('serviceWorker' in navigator) {
-navigator.serviceWorker.register('/sw.js')
-.then(()=>console.log("SW Active"))
-.catch(()=>console.log("SW Failed"));
+navigator.serviceWorker.register('/sw.js');
 }
 </script>
 
