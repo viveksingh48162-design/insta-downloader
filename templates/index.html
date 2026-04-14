@@ -4,9 +4,6 @@
 <title>Vidzo Online 🚀</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ✅ POPUNDER -->
-<script src="https://pl29000129.profitabecpmratenetwork.com/69/f6/d0/69f6d0b0577bd5d107b5848d3ce10205.js"></script>
-
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 
@@ -113,14 +110,13 @@ let videoData={}
 let formatsData={}
 let interval
 
-// ✅ AUTO FETCH (debounce)
+// ✅ AutoFetch
 let timer;
 document.getElementById("url").addEventListener("input", ()=>{
 clearTimeout(timer)
 timer=setTimeout(autoFetch,800)
 })
 
-// 🚀 FETCH VIDEO
 async function autoFetch(){
 
 URL=document.getElementById("url").value.trim()
@@ -167,45 +163,28 @@ video.innerHTML=`
 <img src="${data.thumbnail}">
 `
 
-// STEP 1
 options.innerHTML=`
 <div class="box" onclick="fast()">⚡ FAST</div>
 <div class="box" onclick="turbo()">🚀 TURBO</div>
 `
 }
 
-// ⚡ FAST
+// FAST
 function fast(){
-
-// insta/fb/shorts → no quality
-if(videoData.is_short || videoData.is_social){
-options.innerHTML=`
-<div class="box" onclick="download('best','video')">MP4</div>
-<div class="box" onclick="download('bestaudio','audio')">MP3</div>
-`
-return
-}
-
-// youtube long → normal options
 options.innerHTML=`
 <div class="box" onclick="download('best','video')">MP4</div>
 <div class="box" onclick="download('bestaudio','audio')">MP3</div>
 `
 }
 
-// 🚀 TURBO
+// TURBO
 async function turbo(){
 
-// insta/fb/shorts → no quality
 if(videoData.is_short || videoData.is_social){
-options.innerHTML=`
-<div class="box" onclick="download('best','video')">MP4</div>
-<div class="box" onclick="download('bestaudio','audio')">MP3</div>
-`
+fast()
 return
 }
 
-// youtube long → quality fetch
 let res=await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -229,7 +208,7 @@ html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality
 options.innerHTML=html
 }
 
-// MP3 QUALITY
+// MP3
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('bestaudio','audio')">128kbps</div>
@@ -237,7 +216,7 @@ options.innerHTML=`
 `
 }
 
-// ⬇ DOWNLOAD
+// DOWNLOAD
 function download(format_id,type){
 
 // 💰 SMARTLINK
@@ -252,17 +231,22 @@ body:JSON.stringify({url:URL,format_id,type})
 .then(d=>{
 if(d.error){alert(d.error);return}
 
-// delay download
 setTimeout(()=>{
 window.open(d.download_url)
 },1000)
 
 })
 }
-</script>
 
-<!-- ✅ SOCIAL BAR -->
-<script src="https://pl29000130.profitabecpmratenetwork.com/ae/f4/54/aef454ad9f7ef7c436c5f59c47eb6e8b.js"></script>
+// 💰 FIRST CLICK AD
+let adShown=false;
+document.body.addEventListener("click",function(){
+if(!adShown){
+adShown=true;
+window.open("https://www.profitabecpmratenetwork.com/e03jq01p?key=dba654ad0abd4feeda13436792f2ec85","_blank");
+}
+});
+</script>
 
 </body>
 </html>
