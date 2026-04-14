@@ -3,19 +3,11 @@
 <head>
 <title>Vidzo Online 🚀</title>
 
-<!-- ✅ MOBILE RESPONSIVE -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+*{margin:0;padding:0;box-sizing:border-box;}
 
-/* RESET */
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-}
-
-/* BODY */
 body{
 height:100vh;
 font-family:'Segoe UI',sans-serif;
@@ -27,131 +19,94 @@ justify-content:center;
 align-items:flex-start;
 color:white;
 padding:20px;
-padding-top:80px;  
+padding-top:80px;
 }
 
-/* BG ANIMATION */
 @keyframes gradientBG{
 0%{background-position:0% 50%;}
 50%{background-position:100% 50%;}
 100%{background-position:0% 50%;}
 }
 
-/* CONTAINER */
 .container{
 background:rgba(255,255,255,0.1);
 backdrop-filter:blur(15px);
-padding:30px;
+padding:35px;
 border-radius:20px;
 text-align:center;
-width:100%;
-max-width:420px;
-box-shadow:0 10px 40px rgba(0,0,0,0.2);
+width:95%;
+max-width:500px;
+box-shadow:0 0 40px rgba(0,0,0,0.2);
 }
 
-/* TITLE */
-h1{
-margin-bottom:20px;
-font-size:28px;
-}
+h1{margin-bottom:20px;}
 
-/* INPUT */
 input{
 width:100%;
 padding:14px;
 border-radius:12px;
 border:none;
 outline:none;
-font-size:14px;
-margin-bottom:15px;
+text-align:center;
 }
 
-/* BUTTON */
 .btn{
-width:100%;
+margin-top:10px;
 padding:12px;
+width:100%;
 border:none;
 border-radius:12px;
 background:linear-gradient(90deg,#00c6ff,#0072ff);
 color:white;
 font-weight:bold;
 cursor:pointer;
-transition:0.3s;
 }
 
-.btn:hover{
-transform:scale(1.05);
-}
-
-/* VIDEO AREA */
-#video{
-margin-top:15px;
-}
-
-/* OPTIONS */
 .box{
 background:rgba(255,255,255,0.2);
-padding:10px;
 margin-top:10px;
+padding:12px;
 border-radius:10px;
 cursor:pointer;
 transition:0.3s;
 }
+.box:hover{transform:scale(1.05);}
 
-.box:hover{
-transform:scale(1.05);
-background:rgba(255,255,255,0.35);
-}
+img{margin-top:10px;border-radius:10px;width:220px;}
 
-/* 🔥 ULTIMATE LOADER */
-#loader{
-margin-top:20px;
-display:none;
-}
+/* 🔥 LOADER */
+#loader{display:none;margin-top:15px;}
 
 .loader-box{
 background:rgba(0,0,0,0.2);
-padding:20px;
+padding:15px;
 border-radius:15px;
-backdrop-filter:blur(10px);
 }
 
-/* ✈️ 3D Plane */
 .plane3d{
-font-size:45px;
-animation:fly3d 1.2s infinite ease-in-out;
+font-size:40px;
+animation:fly 1s infinite;
 }
 
-@keyframes fly3d{
-0%{transform:translateX(-30px) rotate(-15deg) scale(1);}
-50%{transform:translateX(30px) rotate(15deg) scale(1.2);}
-100%{transform:translateX(-30px) rotate(-15deg) scale(1);}
+@keyframes fly{
+0%{transform:translateX(-20px);}
+50%{transform:translateX(20px);}
+100%{transform:translateX(-20px);}
 }
 
-/* Progress bar */
 .progress-bar{
-width:100%;
-height:8px;
+height:6px;
 background:rgba(255,255,255,0.2);
-border-radius:10px;
 margin-top:10px;
-overflow:hidden;
+border-radius:10px;
 }
 
 .progress-fill{
 height:100%;
 width:0%;
-background:linear-gradient(90deg,#00c6ff,#0072ff);
-transition:width 0.3s;
+background:#00c6ff;
+transition:0.3s;
 }
-
-/* TEXT */
-#loadingText{
-font-size:14px;
-margin-top:8px;
-opacity:0.9;
-}
-
 </style>
 </head>
 
@@ -162,176 +117,161 @@ opacity:0.9;
 <h1>🚀 Vidzo Downloader</h1>
 
 <input id="url" placeholder="Paste URL here">
-
 <button class="btn" onclick="autoFetch()">Get Video</button>
+
+<div id="loader">
+<div class="loader-box">
+<div class="plane3d">✈️</div>
+<div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+</div>
+</div>
 
 <div id="video"></div>
 <div id="options"></div>
-
-<!-- 🔥 ULTIMATE LOADER -->
-<div id="loader">
-  <div class="loader-box">
-
-    <div class="plane3d">✈️</div>
-
-    <div class="progress-bar">
-      <div class="progress-fill" id="progressFill"></div>
-    </div>
-
-    <p id="loadingText">Fetching video...</p>
-
-  </div>
-</div>
 
 </div>
 
 <script>
 
-let URL = ""
-let progress = 0
+let URL=""
+let videoData={}
+let formatsData={}
+let progress=0
 let interval
 
-/* 🔥 AUTO FETCH */
-function autoFetch(){
+// ✅ AUTO FETCH
+document.getElementById("url").addEventListener("input", autoFetch)
 
-URL = document.getElementById("url").value
+async function autoFetch(){
+
+URL=document.getElementById("url").value.trim()
 
 if(!URL){
-alert("Paste URL first")
+video.innerHTML=""
+options.innerHTML=""
 return
 }
 
-/* SHOW LOADER */
+// 🔥 loader start
 document.getElementById("loader").style.display="block"
-document.getElementById("video").innerHTML=""
-document.getElementById("options").innerHTML=""
+video.innerHTML=""
+options.innerHTML=""
 
-/* FAKE PROGRESS */
-progress = 0
-interval = setInterval(()=>{
-  if(progress < 90){
-    progress += Math.random()*10
-    document.getElementById("progressFill").style.width = progress + "%"
-  }
+progress=0
+interval=setInterval(()=>{
+if(progress<90){
+progress+=5
+document.getElementById("progressFill").style.width=progress+"%"
+}
 },200)
 
-/* API CALL */
-fetch("/get_video",{
+let res=await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
 })
-.then(r=>r.json())
-.then(data=>{
 
-/* STOP LOADER */
+let data=await res.json()
+videoData=data
+
 clearInterval(interval)
-document.getElementById("progressFill").style.width = "100%"
+document.getElementById("progressFill").style.width="100%"
+setTimeout(()=>{loader.style.display="none"},400)
 
-setTimeout(()=>{
-document.getElementById("loader").style.display="none"
-},500)
-
-/* ERROR */
 if(data.error){
-document.getElementById("video").innerHTML = data.error
+video.innerHTML=data.error
 return
 }
 
-/* SHOW VIDEO */
-document.getElementById("video").innerHTML =
-`<h3>${data.title}</h3>
-<img src="${data.thumbnail}" width="220"><br>`
+// show video
+video.innerHTML=`
+<h3>${data.title}</h3>
+<img src="${data.thumbnail}">
+`
 
-loadFormats()
-
-})
-
+// STEP 1
+options.innerHTML=`
+<div class="box" onclick="fast()">⚡ FAST</div>
+<div class="box" onclick="turbo()">🚀 TURBO</div>
+`
 }
 
-/* 🔥 LOAD FORMATS */
-function loadFormats(){
+// ⚡ FAST
+function fast(){
 
-fetch("/get_formats",{
+// insta / fb / shorts
+if(videoData.is_short || videoData.is_social){
+options.innerHTML=`
+<div class="box" onclick="download('best','video')">MP4</div>
+<div class="box" onclick="download('bestaudio','audio')">MP3</div>
+`
+}
+
+// youtube long
+else{
+options.innerHTML=`
+<div class="box" onclick="download('best','video')">MP4</div>
+<div class="box" onclick="download('bestaudio','audio')">MP3</div>
+`
+}
+}
+
+// 🚀 TURBO
+async function turbo(){
+
+// insta/fb/shorts
+if(videoData.is_short || videoData.is_social){
+options.innerHTML=`
+<div class="box" onclick="download('best','video')">MP4</div>
+<div class="box" onclick="download('bestaudio','audio')">MP3</div>
+`
+return
+}
+
+// youtube long
+let res=await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
 })
-.then(r=>r.json())
-.then(data=>{
 
-let html=""
+formatsData=await res.json()
 
-/* FAST + TURBO */
-html += `<div class="box" onclick="fastDownload()">⚡ Fast Download</div>`
-html += `<div class="box" onclick="turboMenu()">🚀 Turbo Download</div>`
-
-document.getElementById("options").innerHTML = html
-
-})
-
+options.innerHTML=`
+<div class="box" onclick="showMP4()">MP4</div>
+<div class="box" onclick="showMP3()">MP3</div>
+`
 }
 
-/* FAST */
-function fastDownload(){
-download("best","video")
-}
-
-/* TURBO MENU */
-function turboMenu(){
-
-let html=""
-
-html += `<div class="box" onclick="showMP4()">🎥 MP4</div>`
-html += `<div class="box" onclick="showMP3()">🎧 MP3</div>`
-
-document.getElementById("options").innerHTML = html
-}
-
-/* MP4 QUALITY */
+// 🎥 MP4 QUALITY
 function showMP4(){
-
 let html=""
-
-html += `<div class="box" onclick="download('18','video')">360p</div>`
-html += `<div class="box" onclick="download('22','video')">720p</div>`
-html += `<div class="box" onclick="download('137','video')">1080p</div>`
-
-document.getElementById("options").innerHTML = html
+formatsData.video.forEach(v=>{
+html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality}</div>`
+})
+options.innerHTML=html
 }
 
-/* MP3 QUALITY */
+// 🎧 MP3 QUALITY
 function showMP3(){
-
-let html=""
-
-html += `<div class="box" onclick="download('bestaudio','audio')">128 kbps</div>`
-html += `<div class="box" onclick="download('bestaudio','audio')">256 kbps</div>`
-
-document.getElementById("options").innerHTML = html
+options.innerHTML=`
+<div class="box" onclick="download('bestaudio','audio')">128kbps</div>
+<div class="box" onclick="download('bestaudio','audio')">256kbps</div>
+`
 }
 
-/* DOWNLOAD */
+// ⬇️ DOWNLOAD
 function download(format_id,type){
-
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-url:URL,
-format_id,
-type
-})
+body:JSON.stringify({url:URL,format_id,type})
 })
 .then(r=>r.json())
-.then(data=>{
-if(data.error){
-alert(data.error)
-return
-}
-window.open(data.download_url)
+.then(d=>{
+if(d.error){alert(d.error);return}
+window.open(d.download_url)
 })
-
 }
 
 </script>
