@@ -2,89 +2,72 @@ from flask import Flask, render_template, request, jsonify, send_file
 import yt_dlp
 import os
 import uuid
+import imageio_ffmpeg as ffmpeg
 
 app = Flask(__name__)
+
+# ✅ FFmpeg auto path
+FFMPEG_PATH = ffmpeg.get_ffmpeg_exe()
 
 DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
+# 🚀 FAST TURBO CONFIG
+def get_ydl_opts():
+    return {
+        "quiet": True,
+        "noplaylist": True,
+        "nocheckcertificate": True,
+        "ignoreerrors": True,
+        "geo_bypass": True,
+        "ffmpeg_location": FFMPEG_PATH,
+        "outtmpl": os.path.join(DOWNLOAD_FOLDER, "%(id)s.%(ext)s"),
+        "format": "bestvideo+bestaudio/best",
+        "merge_output_format": "mp4",
+    }
 
-# ✅ HOME
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-
-# ✅ GET VIDEO INFO
+# 🔍 AUTO FETCH INFO
 @app.route("/get_video", methods=["POST"])
 def get_video():
     url = request.json.get("url")
 
-    try:
-        ydl_opts = {
-            "quiet": True,
-            "noplaylist": True,
-            "nocheckcertificate": True,
-            "ignoreerrors": True,
-            "geo_bypass": True,
-            "extract_flat": False
-        }
+    if not url:
+        return jsonify({"error": "No URL"})
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    try:
+        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
 
         if not info:
-            return jsonify({"error": "❌ Video fetch failed"})
+            return jsonify({"error": "Fetch failed"})
 
         return jsonify({
             "title": info.get("title"),
             "thumbnail": info.get("thumbnail"),
+            "duration": info.get("duration"),
             "is_insta": "instagram.com" in url
         })
 
     except Exception as e:
-        return jsonify({"error": f"❌ Error: {str(e)}"})
+        return jsonify({"error": str(e)})
 
-
-# ✅ GET FORMATS
+# 🎯 GET FORMATS
 @app.route("/get_formats", methods=["POST"])
 def get_formats():
     url = request.json.get("url")
 
     try:
-        ydl_opts = {
-            "quiet": True,
-            "noplaylist": True,
-            "nocheckcertificate": True,
-            "ignoreerrors": True,
-            "geo_bypass": True
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
-
-        if not info:
-            return jsonify({"error": "❌ Cannot fetch formats"})
-
-        # 🔥 INSTAGRAM SIMPLE
-        if "instagram.com" in url:
-            return jsonify({
-                "short": True,
-                "video": [{"format_id": "best", "quality": "HD"}],
-                "audio": [{"format_id": "bestaudio", "quality": "MP3"}]
-            })
 
         video = []
         audio = []
-
         seen = set()
-        allowed = [360, 480, 720, 1080]
 
         for f in info.get("formats", []):
             h = f.get("height")
 
-            # 🎬 VIDEO
-            if f.get("vcodec") != "none" and h in allowed:
+            if f.get("vcodec") != "none" and h:
                 if h not in seen:
                     seen.add(h)
                     video.append({
@@ -92,7 +75,6 @@ def get_formats():
                         "quality": f"{h}p"
                     })
 
-            # 🎧 AUDIO
             if f.get("vcodec") == "none" and f.get("acodec") != "none":
                 audio.append({
                     "format_id": f.get("format_id"),
@@ -106,16 +88,14 @@ def get_formats():
             audio = [{"format_id": "bestaudio", "quality": "MP3"}]
 
         return jsonify({
-            "short": False,
             "video": video,
             "audio": audio
         })
 
     except Exception as e:
-        return jsonify({"error": f"❌ Format error: {str(e)}"})
+        return jsonify({"error": str(e)})
 
-
-# ✅ DOWNLOAD
+# ⬇️ DOWNLOAD
 @app.route("/download", methods=["POST"])
 def download():
     data = request.json
@@ -124,27 +104,21 @@ def download():
     type_ = data.get("type")
 
     try:
-        filename = str(uuid.uuid4()) + ".mp4"
+        filename = str(uuid.uuid4())
 
-        ydl_opts = {
-            "outtmpl": os.path.join(DOWNLOAD_FOLDER, filename),
-            "quiet": True,
-            "noplaylist": True,
-            "nocheckcertificate": True,
-            "ignoreerrors": True,
-            "geo_bypass": True
-        }
+        ydl_opts = get_ydl_opts()
+        ydl_opts["outtmpl"] = os.path.join(DOWNLOAD_FOLDER, filename + ".%(ext)s")
 
-        # 🎧 AUDIO FIX (IMPORTANT)
+        # 🎵 AUDIO FIX (FFmpeg required)
         if type_ == "audio":
             ydl_opts["format"] = "bestaudio"
             ydl_opts["postprocessors"] = [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
-                "preferredquality": "192",
+                "preferredquality": "192"
             }]
         else:
-            ydl_opts["format"] = format_id
+            ydl_opts["format"] = format_id or "best"
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
@@ -154,16 +128,22 @@ def download():
         })
 
     except Exception as e:
-        return jsonify({"error": f"❌ Download failed: {str(e)}"})
+        return jsonify({"error": str(e)})
 
-
-# ✅ SERVE FILE
+# 📂 SERVE FILE
 @app.route("/file/<filename>")
 def serve_file(filename):
-    path = os.path.join(DOWNLOAD_FOLDER, filename)
-    return send_file(path, as_attachment=True)
+    for ext in ["mp4", "mp3", "mkv", "webm"]:
+        path = os.path.join(DOWNLOAD_FOLDER, f"{filename}.{ext}")
+        if os.path.exists(path):
+            return send_file(path, as_attachment=True)
 
+    return "File not found"
 
-# ✅ RUN
+# 🏠 HOME
+@app.route("/")
+def home():
+    return render_template("index.html")
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
