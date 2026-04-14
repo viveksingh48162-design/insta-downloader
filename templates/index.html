@@ -3,7 +3,11 @@
 <head>
 <title>Vidzo Online 🚀</title>
 
+<!-- ✅ NEW: MOBILE RESPONSIVE -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
+
 *{
 margin:0;
 padding:0;
@@ -12,7 +16,7 @@ box-sizing:border-box;
 
 body{
 height:100vh;
-font-family:'Segoe UI',sans-serif;
+font-family:Segoe UI, sans-serif;
 background:linear-gradient(-45deg,#36d1dc,#5b86e5,#ffa600,#ee0979);
 background-size:400% 400%;
 animation:gradientBG 12s ease infinite;
@@ -20,65 +24,87 @@ display:flex;
 justify-content:center;
 align-items:center;
 color:white;
+
+/* ✅ NEW */
+padding:20px;
 }
 
+/* animated bg */
 @keyframes gradientBG{
-0%{background-position:0% 50%}
-50%{background-position:100% 50%}
-100%{background-position:0% 50%}
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
 }
 
+/* glass card */
 .container{
 background:rgba(255,255,255,0.1);
 backdrop-filter:blur(15px);
 padding:40px;
 border-radius:20px;
-width:420px;
 text-align:center;
 box-shadow:0 0 40px rgba(0,0,0,0.2);
+
+/* ✅ UPDATED (mobile fix) */
+width:90%;
+max-width:420px;
+
+/* ✅ optional zoom feel */
+transform:scale(0.95);
 }
 
+/* title */
 h1{
 margin-bottom:20px;
 font-size:28px;
 }
 
+/* input */
 input{
 width:100%;
 padding:14px;
 border-radius:12px;
 border:none;
 outline:none;
-text-align:center;
 font-size:14px;
+text-align:center;
 }
 
+/* button */
 .btn{
-margin-top:10px;
+margin-top:15px;
 padding:12px;
 width:100%;
-border:none;
 border-radius:12px;
-background:linear-gradient(90deg,#00c6ff,#0072ff);
-color:white;
+border:none;
 cursor:pointer;
 font-weight:bold;
+background:linear-gradient(90deg,#00c6ff,#0072ff);
+color:white;
+transition:0.3s;
 }
 
+.btn:hover{
+transform:scale(1.05);
+box-shadow:0 0 15px #00c6ff;
+}
+
+/* cards */
 .box{
 background:rgba(255,255,255,0.2);
 margin-top:10px;
 padding:12px;
 border-radius:10px;
 cursor:pointer;
-transition:.3s;
+transition:0.3s;
 }
 
 .box:hover{
+background:rgba(255,255,255,0.35);
 transform:scale(1.05);
-background:rgba(255,255,255,0.3);
 }
 
+/* loader */
 .loader{
 margin:15px auto;
 border:4px solid rgba(255,255,255,0.2);
@@ -96,23 +122,16 @@ animation:spin 1s linear infinite;
 img{
 margin-top:10px;
 border-radius:10px;
+width:100%;
+max-width:220px;
 }
 
-.fade{
-animation:fadeIn .4s ease;
-}
-
-@keyframes fadeIn{
-from{opacity:0;transform:translateY(10px)}
-to{opacity:1;transform:translateY(0)}
-}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-
 <h1>🚀 Vidzo Downloader</h1>
 
 <input id="url" placeholder="Paste URL here">
@@ -126,139 +145,124 @@ to{opacity:1;transform:translateY(0)}
 <script>
 
 let URL=""
-let videoData={}
-let formatsData={}
 
-// AUTO + BUTTON
-document.getElementById("url").addEventListener("input",autoFetch)
+/* auto fetch */
+document.getElementById("url").addEventListener("change", autoFetch)
 
-async function autoFetch(){
+function autoFetch(){
+URL=document.getElementById("url").value
 
-URL=document.getElementById("url").value.trim()
-
-// RESET
 if(!URL){
-video.innerHTML=""
-options.innerHTML=""
+alert("Paste URL first")
 return
 }
 
-video.innerHTML='<div class="loader"></div>'
+document.getElementById("video").innerHTML='<div class="loader"></div>'
 
-// FETCH VIDEO
-let res=await fetch("/get_video",{
+fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
 })
-
-let data=await res.json()
-videoData=data
+.then(r=>r.json())
+.then(data=>{
 
 if(data.error){
-video.innerHTML="❌ "+data.error
+document.getElementById("video").innerHTML=data.error
 return
 }
 
-// SHOW VIDEO
-video.innerHTML=`
-<div class="fade">
+document.getElementById("video").innerHTML=`
 <h3>${data.title}</h3>
-<img src="${data.thumbnail}" width="220">
-</div>
+<img src="${data.thumbnail}">
 `
 
-// STEP 1
-options.innerHTML=`
-<div class="box fade" onclick="fast()">⚡ FAST DOWNLOAD</div>
-<div class="box fade" onclick="turbo()">🚀 TURBO DOWNLOAD</div>
-`
+loadFormats()
+})
 }
 
-// FAST
-function fast(){
+/* formats */
+function loadFormats(){
 
-options.innerHTML=`
-<div class="box fade" onclick="download('best','fast','video')">🎥 MP4</div>
-<div class="box fade" onclick="download('bestaudio','fast','audio')">🎧 MP3</div>
-`
-}
-
-// TURBO
-async function turbo(){
-
-// SOCIAL + SHORTS
-if(videoData.is_short || videoData.is_social){
-options.innerHTML=`
-<div class="box fade" onclick="download('best','turbo','video')">🎥 MP4</div>
-<div class="box fade" onclick="download('bestaudio','turbo','audio')">🎧 MP3</div>
-`
-return
-}
-
-// YOUTUBE LONG
-options.innerHTML='<div class="loader"></div>'
-
-// FETCH FORMATS
-let res=await fetch("/get_formats",{
+fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
 })
-
-formatsData=await res.json()
-
-// STEP 2
-options.innerHTML=`
-<div class="box fade" onclick="videoQuality()">🎥 MP4</div>
-<div class="box fade" onclick="audioQuality()">🎧 MP3</div>
-`
-}
-
-// VIDEO QUALITY
-function videoQuality(){
+.then(r=>r.json())
+.then(data=>{
 
 let html=""
 
-formatsData.video.forEach(v=>{
-html+=`<div class="box fade" onclick="download('${v.format_id}','turbo','video')">🎥 ${v.quality}</div>`
+/* SHORTS / REELS */
+if(data.short){
+
+html+=`<div class="box" onclick="download('best','video')">⚡ Fast MP4</div>`
+html+=`<div class="box" onclick="download('best','audio')">🎵 Fast MP3</div>`
+
+html+=`<div class="box" onclick="download('turbo_mp4','video')">🚀 Turbo MP4</div>`
+html+=`<div class="box" onclick="download('turbo_mp3','audio')">🚀 Turbo MP3</div>`
+
+}
+
+/* LONG YOUTUBE */
+else{
+
+html+=`<div class="box" onclick="showFast()">⚡ Fast Download</div>`
+html+=`<div class="box" onclick="showTurbo()">🚀 Turbo Download</div>`
+
+}
+
+document.getElementById("options").innerHTML=html
 })
-
-options.innerHTML=html
 }
 
-// AUDIO QUALITY
-function audioQuality(){
+/* FAST MENU */
+function showFast(){
+let html=""
 
-options.innerHTML=`
-<div class="box fade" onclick="download('bestaudio','turbo','audio','64')">🎧 64 kbps</div>
-<div class="box fade" onclick="download('bestaudio','turbo','audio','128')">🎧 128 kbps</div>
-<div class="box fade" onclick="download('bestaudio','turbo','audio','192')">🎧 192 kbps</div>
-<div class="box fade" onclick="download('bestaudio','turbo','audio','256')">🎧 256 kbps</div>
-`
+html+=`<div class="box" onclick="download('best','video')">MP4</div>`
+html+=`<div class="box" onclick="download('best','audio')">MP3</div>`
+
+document.getElementById("options").innerHTML=html
 }
 
-// DOWNLOAD
-function download(format_id,mode,type,bitrate="192"){
+/* TURBO MENU */
+function showTurbo(){
+let html=""
+
+html+=`<div class="box" onclick="download('360','video')">360p</div>`
+html+=`<div class="box" onclick="download('720','video')">720p</div>`
+html+=`<div class="box" onclick="download('1080','video')">1080p</div>`
+html+=`<div class="box" onclick="download('2160','video')">4K</div>`
+
+html+=`<div class="box" onclick="download('128','audio')">MP3 128k</div>`
+html+=`<div class="box" onclick="download('256','audio')">MP3 256k</div>`
+
+document.getElementById("options").innerHTML=html
+}
+
+/* download */
+function download(format_id,type){
 
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 url:URL,
-mode:mode,
-format_id:format_id,
-type:type,
-bitrate:bitrate
+format_id,
+type
 })
 })
 .then(r=>r.json())
-.then(d=>{
-if(d.error){
-alert(d.error)
+.then(data=>{
+
+if(data.error){
+alert(data.error)
 return
 }
-window.open(d.download_url)
+
+window.open(data.download_url)
 })
 }
 
