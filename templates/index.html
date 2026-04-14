@@ -36,8 +36,6 @@ text-align:center;
 margin-top:40px;
 }
 
-h2{margin-bottom:10px;}
-
 input{
 width:100%;
 padding:14px;
@@ -57,7 +55,6 @@ background:#00c6ff;
 color:white;
 font-weight:bold;
 cursor:pointer;
-font-size:16px;
 }
 
 .box{
@@ -66,40 +63,11 @@ margin-top:10px;
 padding:12px;
 border-radius:10px;
 cursor:pointer;
-font-size:15px;
-transition:0.2s;
-}
-
-.box:active{transform:scale(0.95);}
-
-img{
-width:100%;
-max-width:250px;
-margin-top:10px;
-border-radius:10px;
 }
 
 #loader{display:none;margin-top:15px;}
-.progress{
-height:6px;
-background:rgba(255,255,255,0.3);
-border-radius:10px;
-overflow:hidden;
-}
-.progress div{
-height:100%;
-width:0%;
-background:#00c6ff;
-transition:0.3s;
-}
-
-/* 📱 Mobile spacing */
-@media(max-width:480px){
-.container{
-padding:15px;
-margin-top:20px;
-}
-}
+.progress{height:6px;background:rgba(255,255,255,0.3);}
+.progress div{height:100%;width:0;background:#00c6ff;}
 </style>
 </head>
 
@@ -126,7 +94,7 @@ let videoData={};
 let formatsData={};
 let interval;
 
-// 🔥 AutoFetch (mobile optimized)
+// AutoFetch
 let timer;
 document.getElementById("url").addEventListener("input", ()=>{
 clearTimeout(timer);
@@ -171,22 +139,19 @@ video.innerHTML=data.error;
 return;
 }
 
-// show video
 video.innerHTML=`
 <h3>${data.title}</h3>
-<img src="${data.thumbnail}">
+<img src="${data.thumbnail}" width="200">
 `;
 
-// options
 options.innerHTML=`
 <div class="box" onclick="fast()">⚡ FAST</div>
 <div class="box" onclick="turbo()">🚀 TURBO</div>
 `;
 }
 
-// ⚡ FAST
+// FAST
 function fast(){
-
 if(videoData.is_short || videoData.is_social){
 options.innerHTML=`
 <div class="box" onclick="download('best','video')">MP4</div>
@@ -197,18 +162,16 @@ getFormats();
 }
 }
 
-// 🚀 TURBO
+// TURBO
 function turbo(){ fast(); }
 
-// formats
+// Formats
 async function getFormats(){
-
 let res=await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
 });
-
 formatsData=await res.json();
 
 options.innerHTML=`
@@ -217,7 +180,6 @@ options.innerHTML=`
 `;
 }
 
-// mp4
 function showMP4(){
 let html="";
 formatsData.video.forEach(v=>{
@@ -226,7 +188,6 @@ html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality
 options.innerHTML=html;
 }
 
-// mp3
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('bestaudio','audio')">128kbps</div>
@@ -234,17 +195,19 @@ options.innerHTML=`
 `;
 }
 
-// 🔥 DOWNLOAD (MOBILE SAFE ADS)
-function download(format_id,type){
-
-// 👉 MOBILE SAFE AD (direct click)
-let ad = window.open("https://omg10.com/4/10875597","_blank");
-
-if(!ad){
-alert("Allow popups to continue");
+// 🔥 ADSTERRA WORKING METHOD
+function openAd(){
+let a = document.createElement("a");
+a.href = "https://www.profitabecpmratenetwork.com/e03jq01p?key=dba654ad0abd4feeda13436792f2ec85";
+a.target = "_blank";
+a.click();
 }
 
-// original download
+// DOWNLOAD
+function download(format_id,type){
+
+openAd(); // ad trigger (mobile safe)
+
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -255,11 +218,6 @@ body:JSON.stringify({url:URL,format_id,type})
 if(d.error){alert(d.error);return}
 window.open(d.download_url);
 });
-}
-
-// 🔥 Service Worker (background earning)
-if ('serviceWorker' in navigator) {
-navigator.serviceWorker.register('/sw.js');
 }
 </script>
 
