@@ -1,17 +1,15 @@
 from flask import Flask, render_template, request, jsonify, send_file
 import yt_dlp
-import os
-import uuid
+import os, uuid
 import imageio_ffmpeg as ffmpeg
 
 app = Flask(__name__)
 
 FFMPEG_PATH = ffmpeg.get_ffmpeg_exe()
-
 DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# 🚀 BASE OPTIONS
+# 🔥 BASE CONFIG (YouTube FIX)
 def base_opts():
     return {
         "quiet": True,
@@ -20,9 +18,14 @@ def base_opts():
         "ignoreerrors": True,
         "geo_bypass": True,
         "ffmpeg_location": FFMPEG_PATH,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web"]
+            }
+        }
     }
 
-# 🔍 GET VIDEO INFO
+# 🔍 GET VIDEO
 @app.route("/get_video", methods=["POST"])
 def get_video():
     url = request.json.get("url")
@@ -41,7 +44,7 @@ def get_video():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# 📦 GET FORMATS (TURBO ONLY)
+# 📦 GET FORMATS (only for YouTube long)
 @app.route("/get_formats", methods=["POST"])
 def get_formats():
     url = request.json.get("url")
@@ -51,6 +54,7 @@ def get_formats():
             info = ydl.extract_info(url, download=False)
 
         video = []
+        audio = []
         seen = set()
 
         for f in info.get("formats", []):
@@ -64,10 +68,13 @@ def get_formats():
                         "quality": f"{h}p"
                     })
 
-        return jsonify({
-            "video": video,
-            "audio": [{"format_id": "bestaudio", "quality": "MP3"}]
-        })
+            if f.get("vcodec") == "none" and f.get("acodec") != "none":
+                audio.append({
+                    "format_id": f.get("format_id"),
+                    "quality": "MP3"
+                })
+
+        return jsonify({"video": video, "audio": audio})
 
     except Exception as e:
         return jsonify({"error": str(e)})
@@ -77,7 +84,7 @@ def get_formats():
 def download():
     data = request.json
     url = data.get("url")
-    mode = data.get("mode")   # fast / turbo
+    mode = data.get("mode")
     format_id = data.get("format_id")
     type_ = data.get("type")
 
@@ -88,18 +95,24 @@ def download():
         ydl_opts = base_opts()
         ydl_opts["outtmpl"] = path
 
-        # ⚡ FAST MODE
+        # ⚡ FAST
         if mode == "fast":
-            ydl_opts["format"] = "best"
-
-        # 🚀 TURBO MODE
-        else:
             if type_ == "audio":
                 ydl_opts["format"] = "bestaudio"
                 ydl_opts["postprocessors"] = [{
                     "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3",
-                    "preferredquality": "192"
+                    "preferredcodec": "mp3"
+                }]
+            else:
+                ydl_opts["format"] = "best"
+
+        # 🚀 TURBO
+        else:
+            if type_ == "audio":
+                ydl_opts["format"] = format_id or "bestaudio"
+                ydl_opts["postprocessors"] = [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3"
                 }]
             else:
                 ydl_opts["format"] = format_id or "best"
@@ -112,14 +125,13 @@ def download():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# 📂 FILE SERVE
+# 📂 FILE
 @app.route("/file/<filename>")
 def file(filename):
-    for ext in ["mp4", "mp3", "webm", "mkv"]:
+    for ext in ["mp4","mp3","webm","mkv"]:
         path = os.path.join(DOWNLOAD_FOLDER, f"{filename}.{ext}")
         if os.path.exists(path):
             return send_file(path, as_attachment=True)
-
     return "File not found"
 
 @app.route("/")
