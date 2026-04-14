@@ -3,7 +3,6 @@
 <head>
 <title>Vidzo Online 🚀</title>
 
-<!-- ✅ NEW: MOBILE RESPONSIVE -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -24,20 +23,16 @@ display:flex;
 justify-content:center;
 align-items:flex-start;
 color:white;
-
-/* ✅ NEW */
 padding:20px;
-padding-top:60px;  
+padding-top:80px;
 }
 
-/* animated bg */
 @keyframes gradientBG{
 0%{background-position:0% 50%;}
 50%{background-position:100% 50%;}
 100%{background-position:0% 50%;}
 }
 
-/* glass card */
 .container{
 background:rgba(255,255,255,0.1);
 backdrop-filter:blur(15px);
@@ -45,22 +40,15 @@ padding:40px;
 border-radius:20px;
 text-align:center;
 box-shadow:0 0 40px rgba(0,0,0,0.2);
-
-/* ✅ UPDATED (mobile fix) */
 width:95%;
 max-width:500px;
-
-/* ✅ optional zoom feel */
-transform:scale(1);
 }
 
-/* title */
 h1{
 margin-bottom:20px;
 font-size:28px;
 }
 
-/* input */
 input{
 width:100%;
 padding:14px;
@@ -71,7 +59,6 @@ font-size:14px;
 text-align:center;
 }
 
-/* button */
 .btn{
 margin-top:15px;
 padding:12px;
@@ -90,7 +77,6 @@ transform:scale(1.05);
 box-shadow:0 0 15px #00c6ff;
 }
 
-/* cards */
 .box{
 background:rgba(255,255,255,0.2);
 margin-top:10px;
@@ -105,26 +91,35 @@ background:rgba(255,255,255,0.35);
 transform:scale(1.05);
 }
 
-/* loader */
-.loader{
-margin:15px auto;
-border:4px solid rgba(255,255,255,0.2);
-border-top:4px solid white;
-border-radius:50%;
-width:30px;
-height:30px;
-animation:spin 1s linear infinite;
-}
-
-@keyframes spin{
-100%{transform:rotate(360deg);}
-}
-
 img{
 margin-top:10px;
 border-radius:10px;
 width:100%;
 max-width:220px;
+}
+
+/* ✈️ NEW LOADER */
+#loader{
+margin-top:15px;
+text-align:center;
+display:none;
+}
+
+.plane-loader{
+font-size:40px;
+animation:fly 1.5s infinite ease-in-out;
+}
+
+@keyframes fly{
+0%{transform:translateX(-20px) rotate(-10deg);}
+50%{transform:translateX(20px) rotate(10deg);}
+100%{transform:translateX(-20px) rotate(-10deg);}
+}
+
+#loader p{
+font-size:14px;
+margin-top:5px;
+opacity:0.8;
 }
 
 </style>
@@ -138,6 +133,12 @@ max-width:220px;
 <input id="url" placeholder="Paste URL here">
 <button class="btn" onclick="autoFetch()">Get Video</button>
 
+<!-- ✈️ LOADER -->
+<div id="loader">
+  <div class="plane-loader">✈️</div>
+  <p>Loading video...</p>
+</div>
+
 <div id="video"></div>
 <div id="options"></div>
 
@@ -147,7 +148,6 @@ max-width:220px;
 
 let URL=""
 
-/* auto fetch */
 document.getElementById("url").addEventListener("change", autoFetch)
 
 function autoFetch(){
@@ -158,7 +158,10 @@ alert("Paste URL first")
 return
 }
 
-document.getElementById("video").innerHTML='<div class="loader"></div>'
+/* SHOW LOADER */
+document.getElementById("loader").style.display="block"
+document.getElementById("video").innerHTML=""
+document.getElementById("options").innerHTML=""
 
 fetch("/get_video",{
 method:"POST",
@@ -167,6 +170,9 @@ body:JSON.stringify({url:URL})
 })
 .then(r=>r.json())
 .then(data=>{
+
+/* HIDE LOADER */
+document.getElementById("loader").style.display="none"
 
 if(data.error){
 document.getElementById("video").innerHTML=data.error
@@ -182,7 +188,6 @@ loadFormats()
 })
 }
 
-/* formats */
 function loadFormats(){
 
 fetch("/get_formats",{
@@ -195,19 +200,14 @@ body:JSON.stringify({url:URL})
 
 let html=""
 
-/* SHORTS / REELS */
 if(data.short){
 
 html+=`<div class="box" onclick="download('best','video')">⚡ Fast MP4</div>`
 html+=`<div class="box" onclick="download('best','audio')">🎵 Fast MP3</div>`
-
 html+=`<div class="box" onclick="download('turbo_mp4','video')">🚀 Turbo MP4</div>`
 html+=`<div class="box" onclick="download('turbo_mp3','audio')">🚀 Turbo MP3</div>`
 
-}
-
-/* LONG YOUTUBE */
-else{
+}else{
 
 html+=`<div class="box" onclick="showFast()">⚡ Fast Download</div>`
 html+=`<div class="box" onclick="showTurbo()">🚀 Turbo Download</div>`
@@ -218,7 +218,6 @@ document.getElementById("options").innerHTML=html
 })
 }
 
-/* FAST MENU */
 function showFast(){
 let html=""
 
@@ -228,7 +227,6 @@ html+=`<div class="box" onclick="download('best','audio')">MP3</div>`
 document.getElementById("options").innerHTML=html
 }
 
-/* TURBO MENU */
 function showTurbo(){
 let html=""
 
@@ -236,14 +234,12 @@ html+=`<div class="box" onclick="download('360','video')">360p</div>`
 html+=`<div class="box" onclick="download('720','video')">720p</div>`
 html+=`<div class="box" onclick="download('1080','video')">1080p</div>`
 html+=`<div class="box" onclick="download('2160','video')">4K</div>`
-
 html+=`<div class="box" onclick="download('128','audio')">MP3 128k</div>`
 html+=`<div class="box" onclick="download('256','audio')">MP3 256k</div>`
 
 document.getElementById("options").innerHTML=html
 }
 
-/* download */
 function download(format_id,type){
 
 fetch("/download",{
