@@ -4,11 +4,7 @@
 <title>Vidzo Online 🚀</title>
 
 <style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-}
+*{margin:0;padding:0;box-sizing:border-box;}
 
 body{
 height:100vh;
@@ -38,9 +34,7 @@ text-align:center;
 box-shadow:0 0 40px rgba(0,0,0,0.2);
 }
 
-h1{
-margin-bottom:15px;
-}
+h1{margin-bottom:15px;}
 
 input{
 width:100%;
@@ -51,22 +45,10 @@ outline:none;
 text-align:center;
 }
 
-.btn{
-margin-top:10px;
-padding:12px;
-width:100%;
-border:none;
-border-radius:10px;
-background:linear-gradient(90deg,#00c6ff,#0072ff);
-color:white;
-cursor:pointer;
-font-weight:bold;
-}
-
 .box{
 background:rgba(255,255,255,0.2);
 margin-top:10px;
-padding:10px;
+padding:12px;
 border-radius:10px;
 cursor:pointer;
 transition:.3s;
@@ -105,24 +87,26 @@ animation:spin 1s linear infinite;
 </div>
 
 <script>
+
 let URL = ""
 
-// 🔥 AUTO FETCH (paste + typing)
+// 🔥 AUTO FETCH
 document.getElementById("url").addEventListener("input", autoFetch)
 
 async function autoFetch(){
 URL = document.getElementById("url").value.trim()
 
-// ⚡ instant reset
+// 🔄 RESET instantly
 if(!URL){
-document.getElementById("video").innerHTML=""
-document.getElementById("options").innerHTML=""
+video.innerHTML=""
+options.innerHTML=""
 return
 }
 
-document.getElementById("video").innerHTML = '<div class="loader"></div>'
+// ⏳ loader
+video.innerHTML = '<div class="loader"></div>'
 
-// 🚀 FAST FETCH VIDEO INFO
+// 🔍 fetch video info
 let res = await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -132,21 +116,49 @@ body:JSON.stringify({url:URL})
 let data = await res.json()
 
 if(data.error){
-document.getElementById("video").innerHTML=data.error
+video.innerHTML = "❌ " + data.error
 return
 }
 
-// 🎬 show info
-document.getElementById("video").innerHTML = `
+// 🎬 show video
+video.innerHTML = `
 <h3>${data.title}</h3>
 <img src="${data.thumbnail}" width="220">
 `
 
-loadFormats()
+// ⚡ show modes
+options.innerHTML = `
+<div class="box" onclick="fastDownload()">⚡ FAST DOWNLOAD</div>
+<div class="box" onclick="turboMode()">🚀 TURBO DOWNLOAD</div>
+`
 }
 
-// 📦 LOAD FORMATS
-async function loadFormats(){
+// ⚡ FAST DOWNLOAD
+function fastDownload(){
+fetch("/download",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+url:URL,
+mode:"fast"
+})
+})
+.then(r=>r.json())
+.then(d=>{
+if(d.error){
+alert(d.error)
+return
+}
+window.open(d.download_url)
+})
+}
+
+// 🚀 TURBO MODE
+async function turboMode(){
+
+options.innerHTML = '<div class="loader"></div>'
+
+// 📦 get formats
 let res = await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -157,19 +169,15 @@ let data = await res.json()
 
 let html = ""
 
-// ⚡ insta shortcut
-if(data.short){
-html += `<div class="box" onclick="download('best','video')">🎥 MP4</div>`
-html += `<div class="box" onclick="download('bestaudio','audio')">🎧 MP3</div>`
-}else{
+// 🎥 video qualities
 data.video.forEach(v=>{
 html += `<div class="box" onclick="download('${v.format_id}','video')">🎥 ${v.quality}</div>`
 })
 
+// 🎧 audio
 html += `<div class="box" onclick="download('bestaudio','audio')">🎧 MP3</div>`
-}
 
-document.getElementById("options").innerHTML = html
+options.innerHTML = html
 }
 
 // ⬇️ DOWNLOAD
@@ -179,19 +187,21 @@ method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 url:URL,
+mode:"turbo",
 format_id,
 type
 })
 })
 .then(r=>r.json())
-.then(data=>{
-if(data.error){
-alert(data.error)
+.then(d=>{
+if(d.error){
+alert(d.error)
 return
 }
-window.open(data.download_url)
+window.open(d.download_url)
 })
 }
+
 </script>
 
 </body>
