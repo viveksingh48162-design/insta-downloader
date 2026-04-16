@@ -5,15 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-
 body{
 font-family:Segoe UI;
 background:linear-gradient(-45deg,#36d1dc,#5b86e5,#ffa600,#ee0979);
 background-size:400% 400%;
 animation:gradientBG 10s ease infinite;
 color:white;
-min-height:100vh;
 display:flex;
 justify-content:center;
 padding:20px;
@@ -27,46 +24,20 @@ padding:20px;
 
 .container{
 background:rgba(255,255,255,0.12);
-backdrop-filter:blur(15px);
 padding:20px;
-border-radius:18px;
+border-radius:15px;
 width:100%;
 max-width:500px;
 text-align:center;
-margin-top:40px;
 }
 
-input{
-width:100%;
-padding:14px;
-border:none;
-border-radius:10px;
-margin-top:10px;
-font-size:16px;
-}
+input{width:100%;padding:12px;border-radius:10px;border:none;}
+.btn{margin-top:10px;padding:12px;width:100%;border:none;background:#00c6ff;color:white;border-radius:10px;}
 
-.btn{
-margin-top:10px;
-padding:12px;
-width:100%;
-border:none;
-border-radius:10px;
-background:#00c6ff;
-color:white;
-font-weight:bold;
-cursor:pointer;
-}
+.box{margin-top:10px;padding:12px;background:rgba(255,255,255,0.3);border-radius:10px;cursor:pointer;}
 
-.box{
-background:rgba(255,255,255,0.25);
-margin-top:10px;
-padding:12px;
-border-radius:10px;
-cursor:pointer;
-}
-
-#loader{display:none;margin-top:15px;}
-.progress{height:6px;background:rgba(255,255,255,0.3);}
+#loader{display:none;margin-top:10px;}
+.progress{height:6px;background:#333;}
 .progress div{height:100%;width:0;background:#00c6ff;}
 </style>
 </head>
@@ -76,7 +47,7 @@ cursor:pointer;
 <div class="container">
 <h2>🚀 Vidzo Downloader</h2>
 
-<input id="url" placeholder="Paste URL here">
+<input id="url" placeholder="Paste URL">
 <button class="btn" onclick="autoFetch()">Get Video</button>
 
 <div id="loader">
@@ -85,21 +56,14 @@ cursor:pointer;
 
 <div id="video"></div>
 <div id="options"></div>
-
 </div>
 
 <script>
 let URL="";
 let videoData={};
 let formatsData={};
-let interval;
 
-// AutoFetch
-let timer;
-document.getElementById("url").addEventListener("input", ()=>{
-clearTimeout(timer);
-timer=setTimeout(autoFetch,700);
-});
+document.getElementById("url").addEventListener("input", autoFetch);
 
 async function autoFetch(){
 
@@ -111,16 +75,14 @@ options.innerHTML="";
 return;
 }
 
-// loader
 loader.style.display="block";
 bar.style.width="0%";
 let p=0;
 
-interval=setInterval(()=>{
+let interval=setInterval(()=>{
 if(p<90){p+=5;bar.style.width=p+"%";}
 },200);
 
-// API
 let res=await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -134,38 +96,30 @@ clearInterval(interval);
 bar.style.width="100%";
 setTimeout(()=>loader.style.display="none",400);
 
-if(data.error){
-video.innerHTML=data.error;
-return;
-}
-
 video.innerHTML=`
 <h3>${data.title}</h3>
 <img src="${data.thumbnail}" width="200">
 `;
 
 options.innerHTML=`
-<div class="box" onclick="fast()">⚡ FAST</div>
-<div class="box" onclick="turbo()">🚀 TURBO</div>
+<div class="box" onclick="fast()">FAST</div>
+<div class="box" onclick="turbo()">TURBO</div>
 `;
 }
 
-// FAST
 function fast(){
 if(videoData.is_short || videoData.is_social){
 options.innerHTML=`
-<div class="box" onclick="download('best','video')">MP4</div>
-<div class="box" onclick="download('bestaudio','audio')">MP3</div>
+<div class="box" onclick="startDownload('best','video')">MP4</div>
+<div class="box" onclick="startDownload('bestaudio','audio')">MP3</div>
 `;
 }else{
 getFormats();
 }
 }
 
-// TURBO
 function turbo(){ fast(); }
 
-// Formats
 async function getFormats(){
 let res=await fetch("/get_formats",{
 method:"POST",
@@ -183,41 +137,21 @@ options.innerHTML=`
 function showMP4(){
 let html="";
 formatsData.video.forEach(v=>{
-html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality}</div>`;
+html+=`<div class="box" onclick="startDownload('${v.format_id}','video')">${v.quality}</div>`;
 });
 options.innerHTML=html;
 }
 
 function showMP3(){
 options.innerHTML=`
-<div class="box" onclick="download('bestaudio','audio')">128kbps</div>
-<div class="box" onclick="download('bestaudio','audio')">256kbps</div>
+<div class="box" onclick="startDownload('bestaudio','audio')">128kbps</div>
+<div class="box" onclick="startDownload('bestaudio','audio')">256kbps</div>
 `;
 }
 
-// 🔥 ADSTERRA WORKING METHOD
-function openAd(){
-let a = document.createElement("a");
-a.href = "https://www.profitabecpmratenetwork.com/e03jq01p?key=dba654ad0abd4feeda13436792f2ec85";
-a.target = "_blank";
-a.click();
-}
-
-// DOWNLOAD
-function download(format_id,type){
-
-openAd(); // ad trigger (mobile safe)
-
-fetch("/download",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({url:URL,format_id,type})
-})
-.then(r=>r.json())
-.then(d=>{
-if(d.error){alert(d.error);return}
-window.open(d.download_url);
-});
+// 👉 Vegas funnel start
+function startDownload(format_id,type){
+window.location.href = `/gate?url=${encodeURIComponent(URL)}&f=${format_id}&t=${type}`;
 }
 </script>
 
