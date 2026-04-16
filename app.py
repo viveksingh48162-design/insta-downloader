@@ -1,131 +1,139 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, request, jsonify, render_template, redirect
 import yt_dlp
 import os
-import uuid
-import imageio_ffmpeg as ffmpeg
+
+# 🔥 ffmpeg fallback (important for render)
+import imageio_ffmpeg
+
+# set ffmpeg path automatically
+ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 
 app = Flask(__name__)
 
-# ✅ FFmpeg auto
-FFMPEG_PATH = ffmpeg.get_ffmpeg_exe()
-
-DOWNLOAD_FOLDER = "downloads"
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-
-# 🔥 BASE OPTIONS
-def get_opts():
-    return {
-        "quiet": True,
-        "noplaylist": True,
-        "nocheckcertificate": True,
-        "ignoreerrors": True,
-        "geo_bypass": True,
-        "ffmpeg_location": FFMPEG_PATH,
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "web"]
-            }
-        }
-    }
-
-# 🔍 GET VIDEO INFO
+# 🎯 GET VIDEO INFO
 @app.route("/get_video", methods=["POST"])
 def get_video():
-    url = request.json.get("url")
+    data = request.json
+    url = data.get("url")
+
+    ydl_opts = {
+        'quiet': True,
+        'skip_download': True,
+        'ffmpeg_location': ffmpeg_path
+    }
 
     try:
-        with yt_dlp.YoutubeDL(get_opts()) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
         return jsonify({
             "title": info.get("title"),
             "thumbnail": info.get("thumbnail"),
-            "is_short": info.get("duration", 0) < 60,
-            "is_social": any(x in url for x in ["instagram.com","facebook.com"])
+            "is_short": "shorts" in url,
+            "is_social": any(x in url for x in ["instagram", "facebook"])
         })
 
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# 📦 GET FORMATS (YouTube long)
+
+# 🎯 GET FORMATS (YT QUALITY)
 @app.route("/get_formats", methods=["POST"])
 def get_formats():
-    url = request.json.get("url")
+    data = request.json
+    url = data.get("url")
+
+    ydl_opts = {
+        'quiet': True,
+        'ffmpeg_location': ffmpeg_path
+    }
+
+    formats_list = []
 
     try:
-        with yt_dlp.YoutubeDL(get_opts()) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
-        video = []
-        seen = set()
-
         for f in info.get("formats", []):
-            h = f.get("height")
+            if f.get("vcodec") != "none" and f.get("height"):
+                formats_list.append({
+                    "format_id": f["format_id"],
+                    "quality": f"{f['height']}p"
+                })
 
-            if f.get("vcodec") != "none" and h:
-                if h not in seen:
-                    seen.add(h)
-                    video.append({
-                        "format_id": f.get("format_id"),
-                        "quality": f"{h}p"
-                    })
-
-        return jsonify({"video": video})
+        return jsonify({
+            "video": formats_list[:8]
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# ⬇️ DOWNLOAD
+
+# 🎯 DIRECT DOWNLOAD LINK (API)
 @app.route("/download", methods=["POST"])
 def download():
     data = request.json
-
     url = data.get("url")
     format_id = data.get("format_id")
-    type_ = data.get("type")
+
+    ydl_opts = {
+        'format': format_id if format_id else 'best',
+        'quiet': True,
+        'ffmpeg_location': ffmpeg_path
+    }
 
     try:
-        filename = str(uuid.uuid4())
-        path = os.path.join(DOWNLOAD_FOLDER, filename + ".%(ext)s")
-
-        ydl_opts = get_opts()
-        ydl_opts["outtmpl"] = path
-
-        # 🎧 AUDIO (MP3)
-        if type_ == "audio":
-            ydl_opts["format"] = "bestaudio"
-            ydl_opts["postprocessors"] = [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192"
-            }]
-        else:
-            ydl_opts["format"] = format_id or "best"
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+            info = ydl.extract_info(url, download=False)
 
         return jsonify({
-            "download_url": f"/file/{filename}"
+            "download_url": info.get("url")
         })
 
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# 📂 FILE SERVE
-@app.route("/file/<filename>")
-def serve_file(filename):
-    for ext in ["mp4", "mp3", "webm", "mkv"]:
-        path = os.path.join(DOWNLOAD_FOLDER, f"{filename}.{ext}")
-        if os.path.exists(path):
-            return send_file(path, as_attachment=True)
 
-    return "File not found"
+# 🎯 VEGAS FUNNEL ROUTES
 
-# 🏠 HOME
+@app.route("/gate")
+def gate():
+    return render_template("gate.html")
+
+
+@app.route("/adpage")
+def adpage():
+    return render_template("adpage.html")
+
+
+# 🎯 FINAL DOWNLOAD (redirect based)
+@app.route("/start-download")
+def start_download():
+    url = request.args.get("url")
+    f = request.args.get("f")
+
+    ydl_opts = {
+        'format': f if f else 'best',
+        'quiet': True,
+        'ffmpeg_location': ffmpeg_path
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        return redirect(info.get("url"))
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+# 🎯 HOME
 @app.route("/")
 def home():
     return render_template("index.html")
 
+
+# 🚀 RUN
 if __name__ == "__main__":
     app.run(debug=True)
