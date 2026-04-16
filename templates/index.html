@@ -116,7 +116,7 @@ let videoData={};
 let formatsData={};
 let interval;
 
-// 🔥 AutoFetch (debounce)
+// 🔥 AutoFetch
 let timer;
 document.getElementById("url").addEventListener("input", ()=>{
 clearTimeout(timer);
@@ -133,7 +133,7 @@ options.innerHTML="";
 return;
 }
 
-// loader
+// loader start
 loader.style.display="block";
 bar.style.width="0%";
 let p=0;
@@ -191,7 +191,7 @@ function turbo(){
 fast();
 }
 
-// 🎯 formats (YouTube long)
+// 🎯 GET FORMATS
 async function getFormats(){
 
 let res=await fetch("/get_formats",{
@@ -208,7 +208,7 @@ options.innerHTML=`
 `;
 }
 
-// MP4 quality
+// 📹 MP4 QUALITY
 function showMP4(){
 let html="";
 formatsData.video.forEach(v=>{
@@ -217,7 +217,7 @@ html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality
 options.innerHTML=html;
 }
 
-// MP3
+// 🎧 MP3
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('bestaudio','audio')">128kbps</div>
@@ -225,7 +225,7 @@ options.innerHTML=`
 `;
 }
 
-// DOWNLOAD (clean)
+// 🔥 DOWNLOAD (FFmpeg + Direct hybrid)
 function download(format_id,type){
 
 fetch("/download",{
@@ -235,8 +235,21 @@ body:JSON.stringify({url:URL,format_id,type})
 })
 .then(r=>r.json())
 .then(d=>{
-if(d.error){alert(d.error);return}
-window.open(d.download_url);
+if(d.error){
+alert(d.error);
+return;
+}
+
+// 🎬 FFmpeg merged file
+if(d.file){
+window.open("/file/"+d.file);
+}
+
+// ⚡ direct link
+else if(d.direct){
+window.open(d.direct);
+}
+
 });
 }
 </script>
