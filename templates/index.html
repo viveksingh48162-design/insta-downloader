@@ -8,10 +8,10 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 
 body{
-font-family:Segoe UI;
-background:linear-gradient(-45deg,#36d1dc,#5b86e5,#ffa600,#ee0979);
+font-family:'Segoe UI',sans-serif;
+background:linear-gradient(-45deg,#36d1dc,#5b86e5,#ff9966,#ee0979);
 background-size:400% 400%;
-animation:gradientBG 10s ease infinite;
+animation:gradientBG 12s ease infinite;
 color:white;
 min-height:100vh;
 display:flex;
@@ -27,22 +27,25 @@ padding:20px;
 
 .container{
 background:rgba(255,255,255,0.12);
-backdrop-filter:blur(15px);
-padding:20px;
-border-radius:18px;
+backdrop-filter:blur(20px);
+padding:25px;
+border-radius:20px;
 width:100%;
-max-width:500px;
+max-width:520px;
 text-align:center;
-margin-top:40px;
+box-shadow:0 10px 40px rgba(0,0,0,0.3);
 }
+
+h2{margin-bottom:10px;}
 
 input{
 width:100%;
 padding:14px;
 border:none;
-border-radius:10px;
+border-radius:12px;
 margin-top:10px;
-font-size:16px;
+font-size:15px;
+outline:none;
 }
 
 .btn{
@@ -50,8 +53,8 @@ margin-top:10px;
 padding:12px;
 width:100%;
 border:none;
-border-radius:10px;
-background:#00c6ff;
+border-radius:12px;
+background:linear-gradient(90deg,#00c6ff,#0072ff);
 color:white;
 font-weight:bold;
 cursor:pointer;
@@ -61,15 +64,18 @@ cursor:pointer;
 background:rgba(255,255,255,0.25);
 margin-top:10px;
 padding:12px;
-border-radius:10px;
+border-radius:12px;
 cursor:pointer;
+transition:0.2s;
 }
+
+.box:hover{transform:scale(1.04);}
 
 img{
 width:100%;
-max-width:250px;
+max-width:260px;
 margin-top:10px;
-border-radius:10px;
+border-radius:12px;
 }
 
 #loader{display:none;margin-top:15px;}
@@ -93,7 +99,7 @@ transition:0.3s;
 <div class="container">
 <h2>🚀 Vidzo Downloader</h2>
 
-<input id="url" placeholder="Paste URL here">
+<input id="url" placeholder="Paste video URL here">
 <button class="btn" onclick="autoFetch()">Get Video</button>
 
 <div id="loader">
@@ -102,7 +108,6 @@ transition:0.3s;
 
 <div id="video"></div>
 <div id="options"></div>
-
 </div>
 
 <script>
@@ -111,11 +116,11 @@ let videoData={};
 let formatsData={};
 let interval;
 
-// AutoFetch
+// 🔥 AutoFetch (debounce)
 let timer;
 document.getElementById("url").addEventListener("input", ()=>{
 clearTimeout(timer);
-timer=setTimeout(autoFetch,700);
+timer=setTimeout(autoFetch,800);
 });
 
 async function autoFetch(){
@@ -137,7 +142,7 @@ interval=setInterval(()=>{
 if(p<90){p+=5;bar.style.width=p+"%";}
 },200);
 
-// API
+// API call
 let res=await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -152,22 +157,24 @@ bar.style.width="100%";
 setTimeout(()=>loader.style.display="none",400);
 
 if(data.error){
-video.innerHTML=data.error;
+video.innerHTML="<p>"+data.error+"</p>";
 return;
 }
 
+// show video
 video.innerHTML=`
 <h3>${data.title}</h3>
 <img src="${data.thumbnail}">
 `;
 
+// options
 options.innerHTML=`
 <div class="box" onclick="fast()">⚡ FAST</div>
 <div class="box" onclick="turbo()">🚀 TURBO</div>
 `;
 }
 
-// FAST
+// ⚡ FAST
 function fast(){
 if(videoData.is_short || videoData.is_social){
 options.innerHTML=`
@@ -179,25 +186,29 @@ getFormats();
 }
 }
 
-// TURBO
-function turbo(){ fast(); }
+// 🚀 TURBO
+function turbo(){
+fast();
+}
 
-// formats
+// 🎯 formats (YouTube long)
 async function getFormats(){
+
 let res=await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
 });
+
 formatsData=await res.json();
 
 options.innerHTML=`
-<div class="box" onclick="showMP4()">MP4</div>
+<div class="box" onclick="showMP4()">MP4 (Quality)</div>
 <div class="box" onclick="showMP3()">MP3</div>
 `;
 }
 
-// mp4
+// MP4 quality
 function showMP4(){
 let html="";
 formatsData.video.forEach(v=>{
@@ -206,7 +217,7 @@ html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality
 options.innerHTML=html;
 }
 
-// mp3
+// MP3
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('bestaudio','audio')">128kbps</div>
@@ -214,7 +225,7 @@ options.innerHTML=`
 `;
 }
 
-// DOWNLOAD (NO ADS)
+// DOWNLOAD (clean)
 function download(format_id,type){
 
 fetch("/download",{
