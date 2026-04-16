@@ -19,7 +19,7 @@ def home():
     return render_template("index.html")
 
 
-# 🎯 GET VIDEO INFO
+# 🎯 VIDEO INFO
 @app.route("/get_video", methods=["POST"])
 def get_video():
     url = request.json.get("url")
@@ -34,11 +34,12 @@ def get_video():
             "is_short": "shorts" in url,
             "is_social": any(x in url for x in ["instagram","facebook"])
         })
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
 
-# 🎯 GET FORMATS
+# 🎯 FORMATS (YT ONLY)
 @app.route("/get_formats", methods=["POST"])
 def get_formats():
     url = request.json.get("url")
@@ -61,7 +62,7 @@ def get_formats():
         return jsonify({"error": str(e)})
 
 
-# 🎯 DOWNLOAD (SMART)
+# 🚀 ULTRA DOWNLOAD SYSTEM
 @app.route("/download", methods=["POST"])
 def download():
     data = request.json
@@ -69,16 +70,26 @@ def download():
     format_id = data.get("format_id")
 
     try:
-        # 👇 detect youtube long video
-        is_youtube = "youtube.com" in url or "youtu.be" in url
+        # 🔥 FAST CHECK
         is_short = "shorts" in url
+        is_social = any(x in url for x in ["instagram","facebook"])
+        is_youtube = "youtube.com" in url or "youtu.be" in url
 
-        # unique filename
-        file_id = str(uuid.uuid4())
-        output_path = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp4")
+        # ⚡ ULTRA FAST (shorts/reels)
+        if is_short or is_social:
+            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+                info = ydl.extract_info(url, download=False)
 
-        if is_youtube and not is_short:
-            # 🔥 FULL HD MERGE (FFmpeg)
+            return jsonify({
+                "type": "direct",
+                "url": info.get("url")
+            })
+
+        # 🎬 YOUTUBE LONG (HD MERGE)
+        if is_youtube:
+            file_id = str(uuid.uuid4())
+            output_path = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp4")
+
             ydl_opts = {
                 'format': format_id if format_id else 'bestvideo+bestaudio/best',
                 'outtmpl': output_path,
@@ -90,25 +101,19 @@ def download():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
 
-            return jsonify({"file": file_id})
+            return jsonify({
+                "type": "file",
+                "file": file_id
+            })
 
-        else:
-            # ⚡ DIRECT (shorts / insta)
-            ydl_opts = {
-                'format': 'best',
-                'quiet': True
-            }
-
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-
-            return jsonify({"direct": info.get("url")})
+        # fallback
+        return jsonify({"error": "Unsupported URL"})
 
     except Exception as e:
         return jsonify({"error": str(e)})
 
 
-# 🎯 SERVE FILE
+# 🎯 FILE SERVE
 @app.route("/file/<file_id>")
 def serve_file(file_id):
     path = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp4")
