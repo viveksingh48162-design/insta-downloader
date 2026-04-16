@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Vidzo Downloader 🚀</title>
+<title>Vidzo Ultra Downloader 🚀</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -97,7 +97,7 @@ transition:0.3s;
 <body>
 
 <div class="container">
-<h2>🚀 Vidzo Downloader</h2>
+<h2>🚀 Vidzo Ultra Downloader</h2>
 
 <input id="url" placeholder="Paste video URL here">
 <button class="btn" onclick="autoFetch()">Get Video</button>
@@ -116,7 +116,7 @@ let videoData={};
 let formatsData={};
 let interval;
 
-// 🔥 AutoFetch
+// 🔥 AutoFetch (debounce)
 let timer;
 document.getElementById("url").addEventListener("input", ()=>{
 clearTimeout(timer);
@@ -178,8 +178,8 @@ options.innerHTML=`
 function fast(){
 if(videoData.is_short || videoData.is_social){
 options.innerHTML=`
-<div class="box" onclick="download('best','video')">MP4</div>
-<div class="box" onclick="download('bestaudio','audio')">MP3</div>
+<div class="box" onclick="download('best','video')">⚡ Instant MP4</div>
+<div class="box" onclick="download('bestaudio','audio')">⚡ Instant MP3</div>
 `;
 }else{
 getFormats();
@@ -191,7 +191,7 @@ function turbo(){
 fast();
 }
 
-// 🎯 GET FORMATS
+// 🎯 GET FORMATS (YouTube long)
 async function getFormats(){
 
 let res=await fetch("/get_formats",{
@@ -203,8 +203,8 @@ body:JSON.stringify({url:URL})
 formatsData=await res.json();
 
 options.innerHTML=`
-<div class="box" onclick="showMP4()">MP4 (Quality)</div>
-<div class="box" onclick="showMP3()">MP3</div>
+<div class="box" onclick="showMP4()">🎬 MP4 (HD Quality)</div>
+<div class="box" onclick="showMP3()">🎧 MP3</div>
 `;
 }
 
@@ -225,7 +225,7 @@ options.innerHTML=`
 `;
 }
 
-// 🔥 DOWNLOAD (FFmpeg + Direct hybrid)
+// 🔥 ULTRA DOWNLOAD SYSTEM
 function download(format_id,type){
 
 fetch("/download",{
@@ -240,14 +240,14 @@ alert(d.error);
 return;
 }
 
-// 🎬 FFmpeg merged file
-if(d.file){
-window.open("/file/"+d.file);
+// ⚡ Shorts/Reels (instant)
+if(d.type === "direct"){
+window.open(d.url);
 }
 
-// ⚡ direct link
-else if(d.direct){
-window.open(d.direct);
+// 🎬 YouTube long (file)
+if(d.type === "file"){
+window.open("/file/"+d.file);
 }
 
 });
