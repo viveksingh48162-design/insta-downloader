@@ -1,230 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vidzo Ultra</title>
 
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif;}
+<title>Vidzo Downloader</title>
 
-:root{
---bg: linear-gradient(135deg,#ff6a6a,#6a8dff,#6affc3);
---card: rgba(255,255,255,0.15);
---text:#fff;
---btn: linear-gradient(90deg,#00c6ff,#0072ff);
-}
+<link rel="stylesheet" href="mobile.css" media="(max-width: 768px)">
+<link rel="stylesheet" href="desktop.css" media="(min-width: 769px)">
 
-/* 🌙 DARK */
-.dark{
---bg: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
---card: rgba(0,0,0,0.5);
---btn: linear-gradient(90deg,#ff512f,#dd2476);
-}
-
-/* 🌈 ANIMATED BG */
-body{
-min-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-background:var(--bg);
-background-size:300% 300%;
-animation:bgMove 8s infinite alternate;
-color:var(--text);
-}
-
-@keyframes bgMove{
-0%{background-position:0% 50%}
-100%{background-position:100% 50%}
-}
-
-/* GLASS CARD */
-.container{
-width:100%;
-max-width:600px;
-padding:20px;
-border-radius:20px;
-background:var(--card);
-backdrop-filter:blur(20px);
-box-shadow:0 10px 40px rgba(0,0,0,0.3);
-transition:0.4s;
-}
-
-/* MOBILE */
-@media(max-width:600px){
-body{
-align-items:flex-start;
-padding-top:40px;
-}
-.container{
-width:100%;
-}
-}
-
-/* TOPBAR */
-.topbar{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:10px;
-}
-
-.logo{
-font-size:22px;
-font-weight:bold;
-letter-spacing:1px;
-}
-
-/* TOGGLE */
-.toggle{
-padding:6px 12px;
-border-radius:30px;
-background:rgba(255,255,255,0.2);
-cursor:pointer;
-}
-
-/* INPUT */
-input{
-width:100%;
-padding:14px;
-border:none;
-border-radius:12px;
-margin-top:10px;
-background:rgba(255,255,255,0.2);
-color:#fff;
-}
-
-/* BUTTON */
-.btn{
-margin-top:10px;
-padding:14px;
-width:100%;
-border:none;
-border-radius:12px;
-background:var(--btn);
-color:#fff;
-font-weight:bold;
-cursor:pointer;
-box-shadow:0 5px 20px rgba(0,0,0,0.3);
-transition:0.3s;
-}
-
-.btn:hover{
-transform:scale(1.03);
-box-shadow:0 10px 30px rgba(0,0,0,0.4);
-}
-
-/* OPTIONS */
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-margin-top:10px;
-}
-
-.box{
-padding:14px;
-border-radius:12px;
-background:rgba(255,255,255,0.2);
-text-align:center;
-cursor:pointer;
-transition:0.3s;
-}
-
-.box:hover{
-transform:scale(1.05);
-background:rgba(255,255,255,0.3);
-}
-
-/* IMAGE */
-img{
-width:100%;
-border-radius:12px;
-margin-top:10px;
-}
-
-/* PROGRESS */
-#loader{display:none;margin-top:10px;}
-.progress-fill{
-height:5px;
-background:#00c6ff;
-width:0%;
-border-radius:10px;
-transition:0.3s;
-}
-
-</style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="wrapper">
+  <div class="card">
 
-<div class="topbar">
-<div class="logo">🚀 Vidzo Ultra</div>
-<div class="toggle" onclick="toggleMode()">🌙</div>
-</div>
+    <div class="topbar">
+      <h2>🚀 Vidzo Pro</h2>
+      <div class="toggle" onclick="toggleMode()">🌙</div>
+    </div>
 
-<input id="url" placeholder="Paste video URL">
-<button class="btn" onclick="fetchVideo()">Get Video</button>
+    <input id="url" placeholder="Paste URL here">
 
-<div id="loader"><div class="progress-fill" id="bar"></div></div>
+    <button onclick="fetchVideo()">📥 Get Video</button>
 
-<div id="video"></div>
-<div id="options"></div>
+    <div id="options"></div>
 
+    <div class="progress-container">
+      <div class="progress-bar" id="bar"></div>
+    </div>
+
+    <p id="progressText">0%</p>
+
+  </div>
 </div>
 
 <script>
 
-// ⚠️ SAME LOGIC (UNCHANGED)
 let URL=""
 let formatsData={}
 let isShort=false
 
+// 🌙 THEME
 function toggleMode(){
 document.body.classList.toggle("dark")
-let isDark = document.body.classList.contains("dark")
-document.querySelector(".toggle").innerText = isDark ? "☀️" : "🌙"
-localStorage.setItem("mode", isDark)
+localStorage.setItem("mode",document.body.classList.contains("dark"))
 }
 
-window.onload = () => {
 if(localStorage.getItem("mode")==="true"){
 document.body.classList.add("dark")
-document.querySelector(".toggle").innerText="☀️"
-}
 }
 
+// 🔁 AUTO FETCH
 document.getElementById("url").addEventListener("input",fetchVideo)
 
 async function fetchVideo(){
+
 URL=document.getElementById("url").value.trim()
 if(!URL)return
 
-loader.style.display="block"
 bar.style.width="30%"
 
-let res=await fetch("/get_video",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:URL})})
-let data=await res.json()
+let res = await fetch("/get_video",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({url:URL})
+})
+
+let data = await res.json()
 
 bar.style.width="100%"
-setTimeout(()=>loader.style.display="none",300)
 
-if(data.error){video.innerHTML=data.error;return}
+if(data.error){
+options.innerHTML=data.error
+return
+}
 
 isShort = data.is_short || data.is_social
-
-video.innerHTML=`<h3>${data.title}</h3><img src="${data.thumbnail}">`
 
 options.innerHTML=`
 <div class="grid">
 <div class="box" onclick="chooseMode('fast')">⚡ FAST</div>
 <div class="box" onclick="chooseMode('turbo')">🚀 TURBO</div>
-</div>`
+</div>
+`
 }
 
+// STEP 2
 function chooseMode(mode){
+
 if(isShort){
 options.innerHTML=`
 <div class="grid">
@@ -233,18 +98,28 @@ options.innerHTML=`
 </div>`
 return
 }
+
 options.innerHTML=`
 <div class="grid">
 <div class="box" onclick="getFormats('video','${mode}')">🎬 MP4</div>
 <div class="box" onclick="getFormats('audio','${mode}')">🎧 MP3</div>
-</div>`
+</div>
+`
 }
 
+// QUALITY
 async function getFormats(type,mode){
-let res=await fetch("/get_formats",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:URL})})
-formatsData=await res.json()
+
+let res = await fetch("/get_formats",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({url:URL})
+})
+
+formatsData = await res.json()
 
 let html=""
+
 if(type=="video"){
 formatsData.video.forEach(v=>{
 html+=`<div class="box" onclick="download('${type}','${mode}','${v.format_id}')">${v.quality}</div>`
@@ -252,24 +127,36 @@ html+=`<div class="box" onclick="download('${type}','${mode}','${v.format_id}')"
 }else{
 html=`<div class="box" onclick="download('${type}','${mode}','best')">128kbps</div>`
 }
+
 options.innerHTML=html
 }
 
+// DOWNLOAD
 function download(type,mode,format_id=null){
-fetch("/download",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:URL,type:type,mode:mode,format_id:format_id})})
+
+fetch("/download",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({url:URL,type:type,mode:mode,format_id:format_id})
+})
 .then(r=>r.json())
 .then(d=>{
-if(d.type=="direct"){window.location.href=d.url}
-else{track(d.file,d.ext)}
+if(d.type==="direct"){
+window.location.href=d.url
+}else{
+track(d.file,d.ext)
+}
 })
 }
 
+// PROGRESS
 function track(file,ext){
 let i=setInterval(()=>{
 fetch("/progress/"+file)
 .then(r=>r.json())
 .then(p=>{
 bar.style.width=p.progress+"%"
+progressText.innerText=p.progress+"%"
 if(p.progress==100){
 clearInterval(i)
 window.location.href="/file/"+file+"/"+ext
@@ -277,6 +164,7 @@ window.location.href="/file/"+file+"/"+ext
 })
 },1000)
 }
+
 </script>
 
 </body>
