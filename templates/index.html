@@ -39,7 +39,7 @@ max-width:500px; /* width kam */
 min-height:90vh; /* height zyada */
 background:var(--card);
 backdrop-filter:blur(15px);
-padding:20px;
+padding:30px;
 border-radius:20px;
 box-shadow:0 10px 40px rgba(0,0,0,0.3);
 display:flex;
@@ -49,11 +49,13 @@ justify-content:flex-start;
 
 /* 📱 MOBILE TUNING */
 @media(max-width:600px){
+
 .container{
-width:90%;
-max-width:360px;
-min-height:85vh;
+width:90%;          /* width control */
+max-width:350px;    /* slim card */
+min-height:88vh;    /* long vertical */
 padding:18px;
+border-radius:18px;
 }
 }
 
