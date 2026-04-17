@@ -270,16 +270,36 @@ body:JSON.stringify({url:URL,format_id,type})
 })
 .then(r=>r.json())
 .then(d=>{
+
+console.log("RESPONSE:", d);
+
+// ❌ ERROR
 if(d.error){
 alert(d.error);
 return;
 }
 
+// ❌ SAFE CHECK
+if(!d.type){
+alert("Download failed");
+return;
+}
+
+// ⚡ DIRECT (shorts)
 if(d.type === "direct"){
+if(!d.url){
+alert("No video link found");
+return;
+}
 window.open(d.url);
 }
 
+// 🎬 FILE (youtube)
 if(d.type === "file"){
+if(!d.file){
+alert("File not generated");
+return;
+}
 window.open("/file/"+d.file);
 }
 
