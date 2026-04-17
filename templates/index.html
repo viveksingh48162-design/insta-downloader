@@ -1,31 +1,58 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vidzo Downloader</title>
 
-<title>Vidzo Online</title>
-
-<link rel="stylesheet" href="/static/mobile.css" media="(max-width: 768px)">
-<link rel="stylesheet" href="/static/desktop.css" media="(min-width: 769px)">
+<link rel="stylesheet" href="/static/mobile.css" media="(max-width:768px)">
+<link rel="stylesheet" href="/static/desktop.css" media="(min-width:769px)">
 
 </head>
 
 <body>
 
 <div class="wrapper">
-  <div class="card">
+<div class="card">
 
-    <div class="topbar">
-      <h2>🚀 Vidzo Downloader</h2>
-      <div class="toggle" onclick="toggleMode()">🌙</div>
-    </div>
+<div class="topbar">
+<h2>🚀 Vidzo Downloader</h2>
+<div class="toggle" onclick="toggleMode()">🌙</div>
+</div>
 
-    <input id="url" placeholder="Paste URL here">
+<input id="url" placeholder="Paste URL here">
+<button onclick="fetchVideo()">📥 Get Video</button>
 
-    <button onclick="fetchVideo()">📥 Get Video</button>
+<div id="options"></div>
 
-    <div id="options"></div>
+<div class="progress-container">
+<div class="progress-bar" id="bar"></div>
+</div>
+
+<p id="progressText">0%</p>
+
+</div>
+</div>
+
+<script>
+
+// 🌙 THEME
+function toggleMode(){
+document.body.classList.toggle("dark")
+
+let isDark = document.body.classList.contains("dark")
+document.querySelector(".toggle").innerText = isDark ? "☀️" : "🌙"
+
+localStorage.setItem("mode", isDark)
+}
+
+window.onload = () => {
+if(localStorage.getItem("mode")==="true"){
+document.body.classList.add("dark")
+document.querySelector(".toggle").innerText="☀️"
+}
+}
+
+   <div id="options"></div>
 
     <div class="progress-container">
       <div class="progress-bar" id="bar"></div>
