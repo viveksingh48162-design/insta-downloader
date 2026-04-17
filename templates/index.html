@@ -16,8 +16,8 @@ color:white;
 min-height:100vh;
 display:flex;
 justify-content:center;
-padding:20px;
-padding top:80px;  
+align-items:flex-start;
+padding:15px;
 }
 
 @keyframes gradientBG{
@@ -29,23 +29,27 @@ padding top:80px;
 .container{
 background:rgba(255,255,255,0.12);
 backdrop-filter:blur(20px);
-padding:25px;
-border-radius:20px;
+padding:20px;
+border-radius:18px;
 width:100%;
-max-width:520px;
+max-width:500px;
 text-align:center;
 box-shadow:0 10px 40px rgba(0,0,0,0.3);
+margin-top:20px;
 }
 
-h2{margin-bottom:10px;}
+h2{
+margin-bottom:10px;
+font-size:22px;
+}
 
 input{
 width:100%;
-padding:14px;
+padding:12px;
 border:none;
-border-radius:12px;
+border-radius:10px;
 margin-top:10px;
-font-size:15px;
+font-size:14px;
 outline:none;
 }
 
@@ -54,43 +58,84 @@ margin-top:10px;
 padding:12px;
 width:100%;
 border:none;
-border-radius:12px;
+border-radius:10px;
 background:linear-gradient(90deg,#00c6ff,#0072ff);
 color:white;
 font-weight:bold;
 cursor:pointer;
+font-size:15px;
 }
 
 .box{
 background:rgba(255,255,255,0.25);
 margin-top:10px;
 padding:12px;
-border-radius:12px;
+border-radius:10px;
 cursor:pointer;
 transition:0.2s;
+font-size:14px;
 }
 
 .box:hover{transform:scale(1.04);}
 
 img{
 width:100%;
-max-width:260px;
+max-width:250px;
 margin-top:10px;
-border-radius:12px;
+border-radius:10px;
 }
 
 #loader{display:none;margin-top:15px;}
+
 .progress{
 height:6px;
 background:rgba(255,255,255,0.3);
 border-radius:10px;
 overflow:hidden;
 }
+
 .progress div{
 height:100%;
 width:0%;
 background:#00c6ff;
 transition:0.3s;
+}
+
+/* 📱 MOBILE FIX */
+@media(max-width:480px){
+
+body{
+padding:10px;
+}
+
+.container{
+padding:15px;
+border-radius:15px;
+}
+
+h2{
+font-size:18px;
+}
+
+input{
+font-size:13px;
+padding:10px;
+}
+
+.btn{
+font-size:14px;
+padding:10px;
+}
+
+.box{
+font-size:13px;
+padding:10px;
+}
+
+img{
+max-width:200px;
+}
+
 }
 </style>
 </head>
@@ -117,7 +162,6 @@ let videoData={};
 let formatsData={};
 let interval;
 
-// 🔥 AutoFetch (debounce)
 let timer;
 document.getElementById("url").addEventListener("input", ()=>{
 clearTimeout(timer);
@@ -134,16 +178,14 @@ options.innerHTML="";
 return;
 }
 
-// loader start
 loader.style.display="block";
 bar.style.width="0%";
-let p=0;
 
+let p=0;
 interval=setInterval(()=>{
 if(p<90){p+=5;bar.style.width=p+"%";}
 },200);
 
-// API call
 let res=await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -162,20 +204,17 @@ video.innerHTML="<p>"+data.error+"</p>";
 return;
 }
 
-// show video
 video.innerHTML=`
 <h3>${data.title}</h3>
 <img src="${data.thumbnail}">
 `;
 
-// options
 options.innerHTML=`
 <div class="box" onclick="fast()">⚡ FAST</div>
 <div class="box" onclick="turbo()">🚀 TURBO</div>
 `;
 }
 
-// ⚡ FAST
 function fast(){
 if(videoData.is_short || videoData.is_social){
 options.innerHTML=`
@@ -187,12 +226,10 @@ getFormats();
 }
 }
 
-// 🚀 TURBO
 function turbo(){
 fast();
 }
 
-// 🎯 GET FORMATS (YouTube long)
 async function getFormats(){
 
 let res=await fetch("/get_formats",{
@@ -209,7 +246,6 @@ options.innerHTML=`
 `;
 }
 
-// 📹 MP4 QUALITY
 function showMP4(){
 let html="";
 formatsData.video.forEach(v=>{
@@ -218,7 +254,6 @@ html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality
 options.innerHTML=html;
 }
 
-// 🎧 MP3
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('bestaudio','audio')">128kbps</div>
@@ -226,7 +261,6 @@ options.innerHTML=`
 `;
 }
 
-// 🔥 ULTRA DOWNLOAD SYSTEM
 function download(format_id,type){
 
 fetch("/download",{
@@ -241,12 +275,10 @@ alert(d.error);
 return;
 }
 
-// ⚡ Shorts/Reels (instant)
 if(d.type === "direct"){
 window.open(d.url);
 }
 
-// 🎬 YouTube long (file)
 if(d.type === "file"){
 window.open("/file/"+d.file);
 }
