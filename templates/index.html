@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vidzo Downloader</title>
+
+<title>Vidzo Online</title>
 
 <link rel="stylesheet" href="/static/mobile.css" media="(max-width:768px)">
 <link rel="stylesheet" href="/static/desktop.css" media="(min-width:769px)">
@@ -20,7 +22,8 @@
 </div>
 
 <input id="url" placeholder="Paste URL here">
-<button onclick="fetchVideo()">📥 Get Video</button>
+
+<button onclick="fetchVideo()" class="glow-btn">📥 Get Video</button>
 
 <div id="options"></div>
 
@@ -35,36 +38,6 @@
 
 <script>
 
-// 🌙 THEME
-function toggleMode(){
-document.body.classList.toggle("dark")
-
-let isDark = document.body.classList.contains("dark")
-document.querySelector(".toggle").innerText = isDark ? "☀️" : "🌙"
-
-localStorage.setItem("mode", isDark)
-}
-
-window.onload = () => {
-if(localStorage.getItem("mode")==="true"){
-document.body.classList.add("dark")
-document.querySelector(".toggle").innerText="☀️"
-}
-}
-
-   <div id="options"></div>
-
-    <div class="progress-container">
-      <div class="progress-bar" id="bar"></div>
-    </div>
-
-    <p id="progressText">0%</p>
-
-  </div>
-</div>
-
-<script>
-
 let URL=""
 let formatsData={}
 let isShort=false
@@ -72,30 +45,37 @@ let isShort=false
 // 🌙 THEME
 function toggleMode(){
 document.body.classList.toggle("dark")
-localStorage.setItem("mode",document.body.classList.contains("dark"))
+
+let isDark=document.body.classList.contains("dark")
+document.querySelector(".toggle").innerText=isDark?"☀️":"🌙"
+
+localStorage.setItem("mode",isDark)
 }
 
+window.onload=()=>{
 if(localStorage.getItem("mode")==="true"){
 document.body.classList.add("dark")
+document.querySelector(".toggle").innerText="☀️"
+}
 }
 
-// 🔁 AUTO FETCH
+// ⚡ AUTO FETCH
 document.getElementById("url").addEventListener("input",fetchVideo)
 
 async function fetchVideo(){
 
 URL=document.getElementById("url").value.trim()
-if(!URL)return
+if(!URL) return
 
 bar.style.width="30%"
 
-let res = await fetch("/get_video",{
+let res=await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
 })
 
-let data = await res.json()
+let data=await res.json()
 
 bar.style.width="100%"
 
@@ -104,7 +84,7 @@ options.innerHTML=data.error
 return
 }
 
-isShort = data.is_short || data.is_social
+isShort=data.is_short || data.is_social
 
 options.innerHTML=`
 <div class="grid">
@@ -122,10 +102,12 @@ options.innerHTML=`
 <div class="grid">
 <div class="box" onclick="download('video','${mode}')">🎬 MP4</div>
 <div class="box" onclick="download('audio','${mode}')">🎧 MP3</div>
-</div>`
+</div>
+`
 return
 }
 
+// long video
 options.innerHTML=`
 <div class="grid">
 <div class="box" onclick="getFormats('video','${mode}')">🎬 MP4</div>
@@ -137,25 +119,27 @@ options.innerHTML=`
 // QUALITY
 async function getFormats(type,mode){
 
-let res = await fetch("/get_formats",{
+let res=await fetch("/get_formats",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
 })
 
-formatsData = await res.json()
+formatsData=await res.json()
 
 let html=""
 
-if(type=="video"){
+if(type==="video"){
 formatsData.video.forEach(v=>{
 html+=`<div class="box" onclick="download('${type}','${mode}','${v.format_id}')">${v.quality}</div>`
 })
 }else{
-html=`<div class="box" onclick="download('${type}','${mode}','best')">128kbps</div>`
+formatsData.audio.forEach(a=>{
+html+=`<div class="box" onclick="download('${type}','${mode}','${a.format_id}')">${a.quality}</div>`
+})
 }
 
-options.innerHTML=html
+options.innerHTML=`<div class="grid">${html}</div>`
 }
 
 // DOWNLOAD
