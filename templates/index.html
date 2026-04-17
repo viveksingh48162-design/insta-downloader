@@ -26,32 +26,48 @@ min-height:100vh;
 background:var(--bg);
 display:flex;
 justify-content:center;
-align-items:center;
+align-items:flex-start;
 color:var(--text);
+padding-top:40px;
 transition:0.3s;
 }
 
+/* 🔥 SLIM & TALL MOBILE CARD */
 .container{
-width:100%;
-max-width:520px;
-margin:10px;
+width:92%;
+max-width:380px; /* width kam */
+min-height:80vh; /* height zyada */
 background:var(--card);
 backdrop-filter:blur(15px);
 padding:20px;
 border-radius:20px;
 box-shadow:0 10px 40px rgba(0,0,0,0.3);
+display:flex;
+flex-direction:column;
+justify-content:flex-start;
 }
 
+/* 📱 MOBILE TUNING */
 @media(max-width:600px){
-body{align-items:flex-start;padding-top:25px;}
-.container{margin:10px;}
+.container{
+width:90%;
+max-width:360px;
+min-height:85vh;
+padding:18px;
+}
 }
 
 .topbar{
-display:flex;
-justify-content:space-between;
+display:grid;
+grid-template-columns:1fr auto 1fr;
 align-items:center;
 margin-bottom:10px;
+}
+
+.logo{
+font-size:22px;   /* bada size */
+font-weight:bold;
+text-align:center;
 }
 
 .toggle{
@@ -127,25 +143,15 @@ margin-top:10px;
 
 /* HISTORY */
 .history{
-margin-top:15px;
-text-align:left;
-max-height:150px;
+margin-top:auto;
+max-height:120px;
 overflow:auto;
+font-size:12px;
 }
 
 .history-item{
-padding:8px;
-font-size:12px;
+padding:6px;
 border-bottom:1px solid rgba(255,255,255,0.2);
-}
-
-.fade{
-animation:fadeIn 0.4s ease;
-}
-
-@keyframes fadeIn{
-from{opacity:0;transform:translateY(10px);}
-to{opacity:1;transform:translateY(0);}
 }
 </style>
 </head>
@@ -155,11 +161,12 @@ to{opacity:1;transform:translateY(0);}
 <div class="container">
 
 <div class="topbar">
-<b>🚀 Vidzo Downloader</b>
+<div></div>
+<div class="logo">🚀 Vidzo V2</div>
 <div class="toggle" onclick="toggleMode()">🌙</div>
 </div>
 
-<input id="url" placeholder="Paste video URL here">
+<input id="url" placeholder="Paste video URL">
 <button class="btn" onclick="autoFetch()">Get Video</button>
 
 <div id="loader">
@@ -179,8 +186,6 @@ to{opacity:1;transform:translateY(0);}
 
 let URL=""
 let formatsData={}
-let progress=0
-let interval
 
 // 🌙 MODE
 function toggleMode(){
@@ -194,11 +199,11 @@ document.body.classList.add("dark")
 
 // HISTORY
 function addHistory(text){
-let h = document.getElementById("history")
-let item = document.createElement("div")
-item.className="history-item fade"
-item.innerText=text
-h.prepend(item)
+let h=document.getElementById("history")
+let d=document.createElement("div")
+d.className="history-item"
+d.innerText=text
+h.prepend(d)
 }
 
 // AUTO FETCH
@@ -210,16 +215,7 @@ URL=document.getElementById("url").value.trim()
 if(!URL){video.innerHTML="";options.innerHTML="";return;}
 
 loader.style.display="block"
-video.innerHTML=""
-options.innerHTML=""
-
-progress=0
-interval=setInterval(()=>{
-if(progress<90){
-progress+=10
-progressFill.style.width=progress+"%"
-}
-},150)
+progressFill.style.width="0%"
 
 let res = await fetch("/get_video",{
 method:"POST",
@@ -229,7 +225,6 @@ body:JSON.stringify({url:URL})
 
 let data = await res.json()
 
-clearInterval(interval)
 progressFill.style.width="100%"
 setTimeout(()=>loader.style.display="none",300)
 
@@ -278,14 +273,14 @@ body:JSON.stringify({url:URL,type:type,mode:"fast"})
 if(d.type==="direct"){
 window.location.href=d.url
 }else{
-window.location.href="/file/"+d.file+"/"+d.ext
+trackProgress(d.file,d.ext)
 }
 })
 }
 
 // TURBO
 async function turbo(){
-options.innerHTML="Loading quality..."
+options.innerHTML="Loading..."
 
 let res = await fetch("/get_formats",{
 method:"POST",
@@ -293,7 +288,7 @@ headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
 })
 
-formatsData = await res.json()
+formatsData=await res.json()
 
 options.innerHTML=`
 <div class="box" onclick="showMP4()">🎬 MP4</div>
@@ -331,9 +326,24 @@ body:JSON.stringify({url:URL,format_id,type,mode})
 if(d.type==="direct"){
 window.location.href=d.url
 }else{
-window.location.href="/file/"+d.file+"/"+d.ext
+trackProgress(d.file,d.ext)
 }
 })
+}
+
+// 📊 PROGRESS TRACK
+function trackProgress(file,ext){
+let i=setInterval(()=>{
+fetch("/progress/"+file)
+.then(r=>r.json())
+.then(p=>{
+progressFill.style.width=p.progress+"%"
+if(p.progress==100){
+clearInterval(i)
+window.location.href="/file/"+file+"/"+ext
+}
+})
+},1000)
 }
 
 </script>
