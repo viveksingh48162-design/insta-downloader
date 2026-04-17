@@ -10,8 +10,8 @@ ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# 🔥 yt_dlp base config
-def get_ydl_opts():
+
+def base_opts():
     return {
         'quiet': True,
         'noplaylist': True,
@@ -25,13 +25,13 @@ def home():
     return render_template("index.html")
 
 
-# 🎯 VIDEO INFO
+# 🔍 GET VIDEO INFO
 @app.route("/get_video", methods=["POST"])
 def get_video():
     url = request.json.get("url")
 
     try:
-        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
+        with yt_dlp.YoutubeDL(base_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
 
         return jsonify({
@@ -45,13 +45,13 @@ def get_video():
         return jsonify({"error": str(e)})
 
 
-# 🎯 FORMATS
+# 🎬 GET FORMATS (ONLY TURBO)
 @app.route("/get_formats", methods=["POST"])
 def get_formats():
     url = request.json.get("url")
 
     try:
-        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
+        with yt_dlp.YoutubeDL(base_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
 
         formats = []
@@ -68,65 +68,93 @@ def get_formats():
         return jsonify({"error": str(e)})
 
 
-# 🚀 DOWNLOAD
+# 🚀 DOWNLOAD SYSTEM
 @app.route("/download", methods=["POST"])
 def download():
     data = request.json
     url = data.get("url")
     format_id = data.get("format_id")
+    type_ = data.get("type")
+    mode = data.get("mode")  # fast / turbo
 
     try:
-        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
+        with yt_dlp.YoutubeDL(base_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
 
-        # ⚡ SHORTS / REELS (DIRECT)
-        if "shorts" in url or any(x in url for x in ["instagram","facebook"]):
-            
-            video_url = info.get("url")
+        # ⚡ FAST MODE (ULTRA)
+        if mode == "fast":
 
-            # 🔥 fallback
-            if not video_url:
+            # 🎧 AUDIO DIRECT
+            if type_ == "audio":
                 for f in info.get("formats", []):
-                    if f.get("url"):
-                        video_url = f.get("url")
-                        break
+                    if f.get("acodec") != "none" and f.get("vcodec") == "none":
+                        return jsonify({
+                            "type": "direct",
+                            "url": f.get("url")
+                        })
 
-            if not video_url:
-                return jsonify({"error": "No direct video URL found"})
+            # 🎬 VIDEO DIRECT
+            for f in info.get("formats", []):
+                if f.get("vcodec") != "none" and f.get("url"):
+                    return jsonify({
+                        "type": "direct",
+                        "url": f.get("url")
+                    })
 
+        # ⚡ SHORTS / REELS
+        if "shorts" in url or any(x in url for x in ["instagram","facebook"]):
             return jsonify({
                 "type": "direct",
-                "url": video_url
+                "url": info.get("url")
             })
 
-        # 🎬 YOUTUBE LONG DOWNLOAD
+        # 🚀 TURBO MODE (FULL PROCESS)
         file_id = str(uuid.uuid4())
-        output_path = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp4")
 
-        ydl_opts = {
-            'format': format_id if format_id else 'bestvideo+bestaudio/best',
-            'outtmpl': output_path,
-            'merge_output_format': 'mp4',
-            'ffmpeg_location': ffmpeg_path,
-            **get_ydl_opts()
-        }
+        # 🎬 VIDEO
+        if type_ == "video":
+            output = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp4")
+
+            ydl_opts = {
+                'format': f"{format_id}+bestaudio/best",
+                'outtmpl': output,
+                'merge_output_format': 'mp4',
+                'ffmpeg_location': ffmpeg_path,
+                **base_opts()
+            }
+
+        # 🎧 AUDIO
+        else:
+            output = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp3")
+
+            ydl_opts = {
+                'format': 'bestaudio',
+                'outtmpl': output,
+                'ffmpeg_location': ffmpeg_path,
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+                **base_opts()
+            }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
         return jsonify({
             "type": "file",
-            "file": file_id
+            "file": file_id,
+            "ext": "mp3" if type_ == "audio" else "mp4"
         })
 
     except Exception as e:
         return jsonify({"error": str(e)})
 
 
-# 📁 FILE SERVE
-@app.route("/file/<file_id>")
-def serve_file(file_id):
-    path = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp4")
+@app.route("/file/<file_id>/<ext>")
+def serve_file(file_id, ext):
+    path = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.{ext}")
 
     if os.path.exists(path):
         return send_file(path, as_attachment=True)
