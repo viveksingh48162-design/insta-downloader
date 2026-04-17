@@ -1,141 +1,124 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Vidzo Online🚀</title>
+<title>🚀 Vidzo Online</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-
-body{
-font-family:'Segoe UI',sans-serif;
-background:linear-gradient(-45deg,#36d1dc,#5b86e5,#ff9966,#ee0979);
-background-size:400% 400%;
-animation:gradientBG 12s ease infinite;
-color:white;
-min-height:100vh;
-display:flex;
-justify-content:center;
-align-items:flex-start;
-padding:15px;
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
 }
 
-@keyframes gradientBG{
-0%{background-position:0% 50%;}
-50%{background-position:100% 50%;}
-100%{background-position:0% 50%;}
+body{
+font-family:sans-serif;
+min-height:100vh;
+background:linear-gradient(135deg,#ff6a6a,#6a8dff);
+display:flex;
+justify-content:center;
+align-items:center;
+color:#fff;
+}
+
+/* 🔥 FULL WIDTH MOBILE CARD */
+.container{
+width:100%;
+max-width:500px;
+margin:10px;
+background:rgba(255,255,255,0.15);
+backdrop-filter:blur(15px);
+padding:25px;
+border-radius:20px;
+text-align:center;
+box-shadow:0 10px 40px rgba(0,0,0,0.3);
+}
+
+/* 📱 MOBILE FULL HEIGHT FEEL */
+@media(max-width:600px){
+body{
+align-items:flex-start;
+padding-top:40px;
 }
 
 .container{
-background:rgba(255,255,255,0.12);
-backdrop-filter:blur(20px);
+max-width:100%;
+margin:15px;
 padding:20px;
-border-radius:18px;
-width:100%;
-max-width:500px;
-text-align:center;
-box-shadow:0 10px 40px rgba(0,0,0,0.3);
-margin-top:20px;
+border-radius:15px;
+}
 }
 
-h2{
-margin-bottom:10px;
+h1{
 font-size:22px;
+margin-bottom:15px;
 }
 
+/* INPUT */
 input{
 width:100%;
-padding:12px;
+padding:14px;
 border:none;
-border-radius:10px;
+border-radius:12px;
 margin-top:10px;
-font-size:14px;
 outline:none;
+font-size:16px;
 }
 
+/* BUTTON */
 .btn{
-margin-top:10px;
-padding:12px;
+margin-top:12px;
+padding:14px;
 width:100%;
 border:none;
-border-radius:10px;
+border-radius:12px;
 background:linear-gradient(90deg,#00c6ff,#0072ff);
-color:white;
+color:#fff;
 font-weight:bold;
+font-size:16px;
 cursor:pointer;
-font-size:15px;
 }
 
+/* OPTIONS */
 .box{
-background:rgba(255,255,255,0.25);
-margin-top:10px;
-padding:12px;
-border-radius:10px;
+background:rgba(255,255,255,0.2);
+margin-top:12px;
+padding:14px;
+border-radius:12px;
 cursor:pointer;
-transition:0.2s;
-font-size:14px;
+font-size:16px;
+transition:0.3s;
 }
 
-.box:hover{transform:scale(1.04);}
-
-img{
-width:100%;
-max-width:250px;
-margin-top:10px;
-border-radius:10px;
+.box:hover{
+transform:scale(1.05);
 }
 
-#loader{display:none;margin-top:15px;}
+/* LOADER */
+#loader{
+display:none;
+margin-top:15px;
+}
 
-.progress{
+.progress-bar{
 height:6px;
-background:rgba(255,255,255,0.3);
+background:#ccc;
 border-radius:10px;
 overflow:hidden;
 }
 
-.progress div{
+.progress-fill{
 height:100%;
 width:0%;
 background:#00c6ff;
 transition:0.3s;
 }
 
-/* 📱 MOBILE FIX */
-@media(max-width:480px){
-
-body{
-padding:10px;
-}
-
-.container{
-padding:15px;
-border-radius:15px;
-}
-
-h2{
-font-size:18px;
-}
-
-input{
-font-size:13px;
-padding:10px;
-}
-
-.btn{
-font-size:14px;
-padding:10px;
-}
-
-.box{
-font-size:13px;
-padding:10px;
-}
-
+/* IMAGE */
 img{
-max-width:200px;
-}
-
+margin-top:10px;
+border-radius:10px;
+width:100%;
 }
 </style>
 </head>
@@ -143,168 +126,169 @@ max-width:200px;
 <body>
 
 <div class="container">
-<h2>🚀 Vidzo Ultra Downloader</h2>
+
+<h1>🚀 Vidzo Ultra Downloader</h1>
 
 <input id="url" placeholder="Paste video URL here">
 <button class="btn" onclick="autoFetch()">Get Video</button>
 
 <div id="loader">
-<div class="progress"><div id="bar"></div></div>
+<div class="progress-bar">
+<div id="progressFill" class="progress-fill"></div>
+</div>
 </div>
 
 <div id="video"></div>
 <div id="options"></div>
+
 </div>
 
 <script>
-let URL="";
-let videoData={};
-let formatsData={};
-let interval;
 
-let timer;
-document.getElementById("url").addEventListener("input", ()=>{
-clearTimeout(timer);
-timer=setTimeout(autoFetch,800);
-});
+let URL=""
+let formatsData={}
+let progress=0
+let interval
 
+document.getElementById("url").addEventListener("input",autoFetch)
+
+// 🔥 AUTO FETCH
 async function autoFetch(){
 
-URL=document.getElementById("url").value.trim();
+URL=document.getElementById("url").value.trim()
 
 if(!URL){
-video.innerHTML="";
-options.innerHTML="";
-return;
+video.innerHTML=""
+options.innerHTML=""
+return
 }
 
-loader.style.display="block";
-bar.style.width="0%";
+loader.style.display="block"
+video.innerHTML=""
+options.innerHTML=""
 
-let p=0;
+progress=0
 interval=setInterval(()=>{
-if(p<90){p+=5;bar.style.width=p+"%";}
-},200);
+if(progress<90){
+progress+=5
+progressFill.style.width=progress+"%"
+}
+},200)
 
-let res=await fetch("/get_video",{
+let res = await fetch("/get_video",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url:URL})
-});
+})
 
-let data=await res.json();
-videoData=data;
+let data = await res.json()
 
-clearInterval(interval);
-bar.style.width="100%";
-setTimeout(()=>loader.style.display="none",400);
+clearInterval(interval)
+progressFill.style.width="100%"
+setTimeout(()=>loader.style.display="none",400)
 
 if(data.error){
-video.innerHTML="<p>"+data.error+"</p>";
-return;
+video.innerHTML=data.error
+return
 }
 
+// 🎬 SHOW VIDEO
 video.innerHTML=`
 <h3>${data.title}</h3>
 <img src="${data.thumbnail}">
-`;
+`
 
+// ⚡ SHORTS / SOCIAL
+if(data.is_short || data.is_social){
 options.innerHTML=`
-<div class="box" onclick="fast()">⚡ FAST</div>
-<div class="box" onclick="turbo()">🚀 TURBO</div>
-`;
+<div class="box" onclick="fast('video')">⚡ FAST MP4</div>
+<div class="box" onclick="fast('audio')">⚡ FAST MP3</div>
+`
+return
 }
 
-function fast(){
-if(videoData.is_short || videoData.is_social){
+// NORMAL
 options.innerHTML=`
-<div class="box" onclick="download('best','video')">⚡ Instant MP4</div>
-<div class="box" onclick="download('bestaudio','audio')">⚡ Instant MP3</div>
-`;
-}else{
-getFormats();
-}
+<div class="box" onclick="fast('video')">⚡ FAST MP4</div>
+<div class="box" onclick="fast('audio')">⚡ FAST MP3</div>
+<div class="box" onclick="turbo()">🚀 TURBO (HD)</div>
+`
 }
 
-function turbo(){
-fast();
-}
 
-async function getFormats(){
-
-let res=await fetch("/get_formats",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({url:URL})
-});
-
-formatsData=await res.json();
-
-options.innerHTML=`
-<div class="box" onclick="showMP4()">🎬 MP4 (HD Quality)</div>
-<div class="box" onclick="showMP3()">🎧 MP3</div>
-`;
-}
-
-function showMP4(){
-let html="";
-formatsData.video.forEach(v=>{
-html+=`<div class="box" onclick="download('${v.format_id}','video')">${v.quality}</div>`;
-});
-options.innerHTML=html;
-}
-
-function showMP3(){
-options.innerHTML=`
-<div class="box" onclick="download('bestaudio','audio')">128kbps</div>
-<div class="box" onclick="download('bestaudio','audio')">256kbps</div>
-`;
-}
-
-function download(format_id,type){
-
+// ⚡ FAST
+function fast(type){
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({url:URL,format_id,type})
+body:JSON.stringify({url:URL,type:type,mode:"fast"})
 })
 .then(r=>r.json())
 .then(d=>{
-
-console.log("RESPONSE:", d);
-
-// ❌ ERROR
-if(d.error){
-alert(d.error);
-return;
+if(d.type==="direct"){
+window.location.href=d.url
+}else{
+window.location.href="/file/"+d.file+"/"+d.ext
+}
+})
 }
 
-// ❌ SAFE CHECK
-if(!d.type){
-alert("Download failed");
-return;
+
+// 🚀 TURBO
+async function turbo(){
+
+options.innerHTML="Loading quality..."
+
+let res = await fetch("/get_formats",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({url:URL})
+})
+
+formatsData = await res.json()
+
+options.innerHTML=`
+<div class="box" onclick="showMP4()">🎬 MP4</div>
+<div class="box" onclick="showMP3()">🎧 MP3</div>
+`
 }
 
-// ⚡ DIRECT (shorts)
-if(d.type === "direct"){
-if(!d.url){
-alert("No video link found");
-return;
-}
-window.open(d.url);
+
+// 🎬 MP4
+function showMP4(){
+let html=""
+formatsData.video.forEach(v=>{
+html+=`<div class="box" onclick="download('${v.format_id}','video','turbo')">${v.quality}</div>`
+})
+options.innerHTML=html
 }
 
-// 🎬 FILE (youtube)
-if(d.type === "file"){
-if(!d.file){
-alert("File not generated");
-return;
-}
-window.open("/file/"+d.file);
+
+// 🎧 MP3
+function showMP3(){
+options.innerHTML=`
+<div class="box" onclick="download('best','audio','turbo')">128kbps</div>
+`
 }
 
-});
+
+// ⬇ DOWNLOAD
+function download(format_id,type,mode){
+fetch("/download",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({url:URL,format_id,type,mode})
+})
+.then(r=>r.json())
+.then(d=>{
+if(d.type==="direct"){
+window.location.href=d.url
+}else{
+window.location.href="/file/"+d.file+"/"+d.ext
 }
+})
+}
+
 </script>
 
 </body>
