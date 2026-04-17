@@ -5,100 +5,105 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif;}
+
+:root{
+--bg: linear-gradient(135deg,#ff6a6a,#6a8dff);
+--card: rgba(255,255,255,0.15);
+--text:#fff;
+--btn: linear-gradient(90deg,#00c6ff,#0072ff);
+}
+
+.dark{
+--bg: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+--card: rgba(0,0,0,0.4);
+--text:#fff;
+--btn: linear-gradient(90deg,#ff512f,#dd2476);
 }
 
 body{
-font-family:sans-serif;
 min-height:100vh;
-background:linear-gradient(135deg,#ff6a6a,#6a8dff);
+background:var(--bg);
 display:flex;
 justify-content:center;
 align-items:center;
-color:#fff;
+color:var(--text);
+transition:0.3s;
 }
 
-/* 🔥 FULL WIDTH MOBILE CARD */
 .container{
 width:100%;
-max-width:500px;
+max-width:520px;
 margin:10px;
-background:rgba(255,255,255,0.15);
+background:var(--card);
 backdrop-filter:blur(15px);
-padding:25px;
+padding:20px;
 border-radius:20px;
-text-align:center;
 box-shadow:0 10px 40px rgba(0,0,0,0.3);
 }
 
-/* 📱 MOBILE FULL HEIGHT FEEL */
 @media(max-width:600px){
-body{
-align-items:flex-start;
-padding-top:40px;
+body{align-items:flex-start;padding-top:25px;}
+.container{margin:10px;}
 }
 
-.container{
-max-width:100%;
-margin:15px;
-padding:20px;
-border-radius:15px;
-}
-}
-
-h1{
-font-size:22px;
-margin-bottom:15px;
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
 }
 
-/* INPUT */
+.toggle{
+cursor:pointer;
+padding:6px 12px;
+border-radius:10px;
+background:rgba(255,255,255,0.2);
+font-size:12px;
+}
+
 input{
 width:100%;
 padding:14px;
 border:none;
 border-radius:12px;
 margin-top:10px;
-outline:none;
 font-size:16px;
+outline:none;
 }
 
-/* BUTTON */
 .btn{
 margin-top:12px;
 padding:14px;
 width:100%;
 border:none;
 border-radius:12px;
-background:linear-gradient(90deg,#00c6ff,#0072ff);
+background:var(--btn);
 color:#fff;
 font-weight:bold;
 font-size:16px;
 cursor:pointer;
 }
 
-/* OPTIONS */
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+margin-top:10px;
+}
+
 .box{
 background:rgba(255,255,255,0.2);
-margin-top:12px;
 padding:14px;
 border-radius:12px;
 cursor:pointer;
-font-size:16px;
-transition:0.3s;
+text-align:center;
+transition:0.2s;
 }
 
-.box:hover{
-transform:scale(1.05);
-}
+.box:hover{transform:scale(1.05);}
 
-/* LOADER */
-#loader{
-display:none;
-margin-top:15px;
-}
+#loader{display:none;margin-top:15px;}
 
 .progress-bar{
 height:6px;
@@ -114,11 +119,33 @@ background:#00c6ff;
 transition:0.3s;
 }
 
-/* IMAGE */
 img{
-margin-top:10px;
-border-radius:10px;
 width:100%;
+border-radius:10px;
+margin-top:10px;
+}
+
+/* HISTORY */
+.history{
+margin-top:15px;
+text-align:left;
+max-height:150px;
+overflow:auto;
+}
+
+.history-item{
+padding:8px;
+font-size:12px;
+border-bottom:1px solid rgba(255,255,255,0.2);
+}
+
+.fade{
+animation:fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn{
+from{opacity:0;transform:translateY(10px);}
+to{opacity:1;transform:translateY(0);}
 }
 </style>
 </head>
@@ -127,7 +154,10 @@ width:100%;
 
 <div class="container">
 
-<h1>🚀 Vidzo Ultra Downloader</h1>
+<div class="topbar">
+<b>🚀 Vidzo Ultimate</b>
+<div class="toggle" onclick="toggleMode()">🌙</div>
+</div>
 
 <input id="url" placeholder="Paste video URL here">
 <button class="btn" onclick="autoFetch()">Get Video</button>
@@ -141,6 +171,8 @@ width:100%;
 <div id="video"></div>
 <div id="options"></div>
 
+<div class="history" id="history"></div>
+
 </div>
 
 <script>
@@ -150,18 +182,32 @@ let formatsData={}
 let progress=0
 let interval
 
+// 🌙 MODE
+function toggleMode(){
+document.body.classList.toggle("dark")
+localStorage.setItem("mode",document.body.classList.contains("dark"))
+}
+
+if(localStorage.getItem("mode")==="true"){
+document.body.classList.add("dark")
+}
+
+// HISTORY
+function addHistory(text){
+let h = document.getElementById("history")
+let item = document.createElement("div")
+item.className="history-item fade"
+item.innerText=text
+h.prepend(item)
+}
+
+// AUTO FETCH
 document.getElementById("url").addEventListener("input",autoFetch)
 
-// 🔥 AUTO FETCH
 async function autoFetch(){
 
 URL=document.getElementById("url").value.trim()
-
-if(!URL){
-video.innerHTML=""
-options.innerHTML=""
-return
-}
+if(!URL){video.innerHTML="";options.innerHTML="";return;}
 
 loader.style.display="block"
 video.innerHTML=""
@@ -170,10 +216,10 @@ options.innerHTML=""
 progress=0
 interval=setInterval(()=>{
 if(progress<90){
-progress+=5
+progress+=10
 progressFill.style.width=progress+"%"
 }
-},200)
+},150)
 
 let res = await fetch("/get_video",{
 method:"POST",
@@ -185,39 +231,43 @@ let data = await res.json()
 
 clearInterval(interval)
 progressFill.style.width="100%"
-setTimeout(()=>loader.style.display="none",400)
+setTimeout(()=>loader.style.display="none",300)
 
 if(data.error){
 video.innerHTML=data.error
 return
 }
 
-// 🎬 SHOW VIDEO
 video.innerHTML=`
 <h3>${data.title}</h3>
 <img src="${data.thumbnail}">
 `
 
-// ⚡ SHORTS / SOCIAL
+// SHORTS
 if(data.is_short || data.is_social){
 options.innerHTML=`
-<div class="box" onclick="fast('video')">⚡ FAST MP4</div>
-<div class="box" onclick="fast('audio')">⚡ FAST MP3</div>
+<div class="grid">
+<div class="box" onclick="fast('video')">⚡ MP4</div>
+<div class="box" onclick="fast('audio')">🎧 MP3</div>
+</div>
 `
 return
 }
 
 // NORMAL
 options.innerHTML=`
+<div class="grid">
 <div class="box" onclick="fast('video')">⚡ FAST MP4</div>
 <div class="box" onclick="fast('audio')">⚡ FAST MP3</div>
-<div class="box" onclick="turbo()">🚀 TURBO (HD)</div>
+</div>
+<div class="box" onclick="turbo()">🚀 TURBO HD</div>
 `
 }
 
-
-// ⚡ FAST
+// FAST
 function fast(type){
+addHistory("FAST "+type)
+
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -233,10 +283,8 @@ window.location.href="/file/"+d.file+"/"+d.ext
 })
 }
 
-
-// 🚀 TURBO
+// TURBO
 async function turbo(){
-
 options.innerHTML="Loading quality..."
 
 let res = await fetch("/get_formats",{
@@ -253,8 +301,7 @@ options.innerHTML=`
 `
 }
 
-
-// 🎬 MP4
+// MP4
 function showMP4(){
 let html=""
 formatsData.video.forEach(v=>{
@@ -263,17 +310,17 @@ html+=`<div class="box" onclick="download('${v.format_id}','video','turbo')">${v
 options.innerHTML=html
 }
 
-
-// 🎧 MP3
+// MP3
 function showMP3(){
 options.innerHTML=`
 <div class="box" onclick="download('best','audio','turbo')">128kbps</div>
 `
 }
 
-
-// ⬇ DOWNLOAD
+// DOWNLOAD
 function download(format_id,type,mode){
+addHistory("TURBO "+type)
+
 fetch("/download",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
