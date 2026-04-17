@@ -21,67 +21,61 @@
 --btn: linear-gradient(90deg,#ff512f,#dd2476);
 }
 
+/* BODY CENTER FIX */
 body{
 min-height:100vh;
 background:var(--bg);
 display:flex;
 justify-content:center;
-align-items:flex-start;
+align-items:center;
 color:var(--text);
-padding-top:20px;
-transition:0.3s;
 }
 
-/* 🔥 SLIM & TALL MOBILE CARD */
+/* ✅ PERFECT CONTAINER */
 .container{
-width:95%;
-max-width:500px; /* width kam */
-min-height:90vh; /* height zyada */
+width:92%;
+max-width:420px;
+margin:auto;
 background:var(--card);
 backdrop-filter:blur(15px);
-padding:30px;
+padding:20px;
 border-radius:20px;
-box-shadow:0 10px 40px rgba(0,0,0,0.3);
-display:flex;
-flex-direction:column;
-justify-content:flex-start;
+box-shadow:0 20px 60px rgba(0,0,0,0.3);
 }
 
-/* 📱 MOBILE TUNING */
+/* MOBILE FIX */
 @media(max-width:600px){
-
 .container{
-width:95%;          /* full width feel */
-max-width:100%;     /* limit hata di */
-min-height:auto;    /* height auto */
-padding:16px;
-border-radius:16px;
+width:92%;
+max-width:420px;
+padding:18px;
 }
 }
 
+/* TOPBAR */
 .topbar{
-display:flex;
-justify-content:space-between;
+display:grid;
+grid-template-columns:1fr auto 1fr;
 align-items:center;
 margin-bottom:15px;
-gap:10px;  /* space add */
 }
 
 .logo{
 font-size:22px;
 font-weight:bold;
-flex:1;            /* center push karega */
 text-align:center;
 }
 
 .toggle{
-padding:4px 12px;
-border-radius:30px;
-background:rgba(255,255,255,0.15);
-backdrop-filter:blur(10px);
+justify-self:end;
+padding:4px 10px;
 font-size:12px;
+border-radius:20px;
+background:rgba(255,255,255,0.2);
+cursor:pointer;
 }
-  
+
+/* INPUT */
 input{
 width:100%;
 padding:14px;
@@ -92,6 +86,7 @@ font-size:16px;
 outline:none;
 }
 
+/* BUTTON */
 .btn{
 margin-top:12px;
 padding:14px;
@@ -105,6 +100,7 @@ font-size:16px;
 cursor:pointer;
 }
 
+/* OPTIONS */
 .grid{
 display:grid;
 grid-template-columns:1fr 1fr;
@@ -118,12 +114,17 @@ padding:14px;
 border-radius:12px;
 cursor:pointer;
 text-align:center;
-transition:0.2s;
 }
 
-.box:hover{transform:scale(1.05);}
+/* IMAGE */
+img{
+width:100%;
+border-radius:10px;
+margin-top:10px;
+}
 
-#loader{display:none;margin-top:15px;}
+/* PROGRESS */
+#loader{display:none;margin-top:10px;}
 
 .progress-bar{
 height:6px;
@@ -136,21 +137,14 @@ overflow:hidden;
 height:100%;
 width:0%;
 background:#00c6ff;
-transition:0.3s;
-}
-
-img{
-width:100%;
-border-radius:10px;
-margin-top:10px;
 }
 
 /* HISTORY */
 .history{
-margin-top:auto;
+margin-top:15px;
+font-size:12px;
 max-height:120px;
 overflow:auto;
-font-size:12px;
 }
 
 .history-item{
@@ -210,13 +204,11 @@ d.innerText=text
 h.prepend(d)
 }
 
-// AUTO FETCH
-document.getElementById("url").addEventListener("input",autoFetch)
-
+// FETCH
 async function autoFetch(){
 
 URL=document.getElementById("url").value.trim()
-if(!URL){video.innerHTML="";options.innerHTML="";return;}
+if(!URL){return;}
 
 loader.style.display="block"
 progressFill.style.width="0%"
@@ -242,22 +234,10 @@ video.innerHTML=`
 <img src="${data.thumbnail}">
 `
 
-// SHORTS
-if(data.is_short || data.is_social){
 options.innerHTML=`
 <div class="grid">
 <div class="box" onclick="fast('video')">⚡ MP4</div>
 <div class="box" onclick="fast('audio')">🎧 MP3</div>
-</div>
-`
-return
-}
-
-// NORMAL
-options.innerHTML=`
-<div class="grid">
-<div class="box" onclick="fast('video')">⚡ FAST MP4</div>
-<div class="box" onclick="fast('audio')">⚡ FAST MP3</div>
 </div>
 <div class="box" onclick="turbo()">🚀 TURBO HD</div>
 `
@@ -335,7 +315,7 @@ trackProgress(d.file,d.ext)
 })
 }
 
-// 📊 PROGRESS TRACK
+// PROGRESS
 function trackProgress(file,ext){
 let i=setInterval(()=>{
 fetch("/progress/"+file)
